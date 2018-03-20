@@ -1,10 +1,11 @@
 package com.example.matthias.myapplication;
 
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import android.content.Context;
+import android.util.Log;
+
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
  * Created by Matthias on 01.03.2018.
@@ -12,29 +13,43 @@ import java.io.IOException;
 
 public class AudioFileReader {
 
-    static void readAudioFile()
+    private AudioWorker mAudioWorker;
+    private Context mContext;
+    public AudioFileReader(AudioWorker aw, Context c){
+        mAudioWorker = aw;
+        mContext = c;
+    }
+
+
+    public void readAudioFile()
     {
-        File file = new File("--filePath--");
-        int shortSizeInBytes = Short.SIZE / Byte.SIZE;
-        int bufferSizeInBytes = (int)(file.length() / shortSizeInBytes);
-        int i = 0;
-        byte[] s = new byte[bufferSizeInBytes];
 
+        InputStream ins = mContext.getResources().openRawResource(R.raw.audio1000hzsine3s);
         try {
-            final FileInputStream fin = new FileInputStream(file);
-            final DataInputStream dis = new DataInputStream(fin);
-
-            while ((i = dis.read(s, 0, bufferSizeInBytes)) > -1) {
-                //read i bytes
-
-            }
-
-        } catch (FileNotFoundException e) {
-
+            byte[] foo = readBytes(ins);
+            mAudioWorker.processSample(HelperFunctions.convertByteToDouble(foo));
         } catch (IOException e) {
-
-        } catch (Exception e) {
-
+            Log.d("readAudioFile", "IOException");
+            e.printStackTrace();
         }
+
+    }
+
+    public byte[] readBytes(InputStream inputStream) throws IOException {
+        // this dynamically extends to take the bytes you read
+        ByteArrayOutputStream byteBuffer = new ByteArrayOutputStream();
+
+        // this is storage overwritten on each iteration with bytes
+        int bufferSize = 1024;
+        byte[] buffer = new byte[bufferSize];
+
+        // we need to know how may bytes were read to write them to the byteBuffer
+        int len = 0;
+        while ((len = inputStream.read(buffer)) != -1) {
+            byteBuffer.write(buffer, 0, len);
+        }
+
+        // and then we can return your byte array.
+        return byteBuffer.toByteArray();
     }
 }
