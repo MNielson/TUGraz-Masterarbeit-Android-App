@@ -4,6 +4,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 
+import java.util.Arrays;
+
 /**
  * Created by Matthias on 20.03.2018.
  */
@@ -14,6 +16,7 @@ public class AudioWorker extends HandlerThread {
     private Handler mWorkerHandler;
     private short[] audioBuffer;
     private PitchDetector mPitchDetector;
+    private int doublesPerSample = 1024;
 
     //TODO: figure out where pitch detection should happen
 
@@ -33,7 +36,7 @@ public class AudioWorker extends HandlerThread {
         Runnable task = new Runnable() {
             @Override
             public void run() {
-                double pitch = mPitchDetector.computePitch(sample, 0, sample.length);
+                double pitch = mPitchDetector.computePitch(sample, 0, Math.min(1024, sample.length));
                 Log.d("PitchDetectorResult", "Calculated a pitch of "+ Double.toString(pitch) +" hz.");
                 //TODO: report result of pitchdetection somehow
             }
@@ -41,16 +44,28 @@ public class AudioWorker extends HandlerThread {
         postTask(task);
     }
 
-    public void processAllSamples()
+    public void processSamples(final double[] samples)
     {
-        Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                //TODO: do work with samples
-                //TODO: pitch detection
-            }
-        };
-        postTask(task);
+        double[] bar = Arrays.copyOfRange(samples, 1024 * 200, samples.length);
+
+        int len = samples.length;
+        int numSamples = (int) Math.ceil(len / doublesPerSample);
+        for(int i = 0; i < numSamples; i++)
+        {
+            final int startSample = doublesPerSample * i;
+            final int remainingSamples = len - startSample;
+
+            Runnable task = new Runnable() {
+                @Override
+                public void run() {
+                    double pitch = mPitchDetector.computePitch(samples, startSample, Math.min(1024, remainingSamples));
+                    Log.d("PitchDetectorResult", "Calculated a pitch of "+ Double.toString(pitch) +" hz.");
+                }
+            };
+            postTask(task);
+        }
+
+
     }
 
 
