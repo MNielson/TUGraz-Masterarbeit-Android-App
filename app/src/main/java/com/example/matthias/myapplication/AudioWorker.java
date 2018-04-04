@@ -22,7 +22,6 @@ public class AudioWorker extends HandlerThread {
     private Lock pitchResultLock;
     private LinkedList<Double> pitchResults;
 
-    //TODO: figure out where pitch detection should happen
 
     public AudioWorker(String name, PitchDetector pd) {
         super(name);
@@ -44,7 +43,6 @@ public class AudioWorker extends HandlerThread {
             public void run() {
                 double pitch = mPitchDetector.computePitch(sample, 0, Math.min(1024, sample.length));
                 Log.d("PitchDetectorResult", "Calculated a pitch of "+ Double.toString(pitch) +" hz.");
-                //TODO: report result of pitchdetection somehow
             }
         };
         postTask(task);
@@ -59,18 +57,22 @@ public class AudioWorker extends HandlerThread {
         {
             final int startSample = doublesPerSample * i;
             final int remainingSamples = len - startSample;
-
+            double pitch = mPitchDetector.computePitch(samples, startSample, Math.min(1024, remainingSamples));
+            pitchResults.add(pitch);
+/*
             Runnable task = new Runnable() {
                 @Override
                 public void run() {
+                    // TODO: Figure out if we're losing samples or racing somewhere
                     pitchResultLock.lock();
                     double pitch = mPitchDetector.computePitch(samples, startSample, Math.min(1024, remainingSamples));
-                    pitchResults.add(pitch);
+
                     pitchResultLock.unlock();
                     //Log.d("PitchDetectorResult", "Calculated a pitch of "+ Double.toString(pitch) +" hz from " + Math.min(1024, remainingSamples) + " samples.");
                 }
             };
             postTask(task);
+*/
         }
         return pitchResults;
 
