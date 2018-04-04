@@ -5,6 +5,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.TextView;
 
+import java.util.LinkedList;
+
 public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'native-lib' library on application startup.
@@ -33,7 +35,10 @@ public class MainActivity extends AppCompatActivity {
 
         AudioFileReader audioFileReader = new AudioFileReader(mAudioWorker, this);
         Log.d("myTag", "myMessage");
-        audioFileReader.readAudioFile();
+        LinkedList<Double> pitches = audioFileReader.readPitchFromAudioFile();
+        for(Double pitch : pitches){
+            Log.d("DetectedPitch:", pitch.toString() + "hz");
+        }
 
 
     }

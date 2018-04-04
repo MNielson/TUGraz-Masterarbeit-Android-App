@@ -4,15 +4,21 @@
 
 #include "PitchDetector.h"
 #include "dywapitchtrack.h"
+#include <mutex>
+
 
 static dywapitchtracker* mdywapitchtracker;
+std::mutex mtx;
 
 PitchDetector::PitchDetector() {
     mdywapitchtracker = new dywapitchtracker;
 }
 
 double PitchDetector::computePitch(double * samples, int startsample, int samplecount) {
-    return dywapitch_computepitch(mdywapitchtracker, samples, startsample, samplecount);
+    mtx.lock();
+    double pitch = dywapitch_computepitch(mdywapitchtracker, samples, startsample, samplecount);
+    mtx.unlock();
+    return pitch;
 }
 
 double PitchDetector::testMe(double * samples, int samplecount) {

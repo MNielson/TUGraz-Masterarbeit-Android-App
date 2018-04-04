@@ -6,6 +6,7 @@ import android.util.Log;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedList;
 
 /**
  * Created by Matthias on 01.03.2018.
@@ -21,19 +22,19 @@ public class AudioFileReader {
     }
 
 
-    public void readAudioFile()
+    public LinkedList<Double> readPitchFromAudioFile()
     {
-
+        LinkedList<Double> pitches = new LinkedList();
         InputStream ins = mContext.getResources().openRawResource(R.raw.audio1000hzsine3sraw);
         try {
             byte[] foo = readBytes(ins);
             ins.close();
-            mAudioWorker.processSamples(HelperFunctions.convertByteToDoubleViaShort(foo));
+            pitches = mAudioWorker.processSamples(HelperFunctions.convertByteToDoubleViaShort(foo));
         } catch (IOException e) {
             Log.d("readAudioFile", "IOException");
             e.printStackTrace();
         }
-
+        return pitches;
     }
 
 

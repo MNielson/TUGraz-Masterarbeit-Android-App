@@ -4,7 +4,9 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 
-import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by Matthias on 20.03.2018.
@@ -17,12 +19,16 @@ public class AudioWorker extends HandlerThread {
     private short[] audioBuffer;
     private PitchDetector mPitchDetector;
     private int doublesPerSample = 1024;
+    private Lock pitchResultLock;
+    private LinkedList<Double> pitchResults;
 
     //TODO: figure out where pitch detection should happen
 
     public AudioWorker(String name, PitchDetector pd) {
         super(name);
         mPitchDetector = pd;
+        pitchResults = new LinkedList();
+        pitchResultLock = new ReentrantLock();
     }
 
     private void postTask(Runnable task){
@@ -44,10 +50,9 @@ public class AudioWorker extends HandlerThread {
         postTask(task);
     }
 
-    public void processSamples(final double[] samples)
+    public LinkedList<Double> processSamples(final double[] samples)
     {
-        double[] bar = Arrays.copyOfRange(samples, 1024 * 200, samples.length);
-
+        pitchResults.clear();
         int len = samples.length;
         int numSamples = (int) Math.ceil(len / doublesPerSample);
         for(int i = 0; i < numSamples; i++)
@@ -58,13 +63,16 @@ public class AudioWorker extends HandlerThread {
             Runnable task = new Runnable() {
                 @Override
                 public void run() {
+                    pitchResultLock.lock();
                     double pitch = mPitchDetector.computePitch(samples, startSample, Math.min(1024, remainingSamples));
-                    Log.d("PitchDetectorResult", "Calculated a pitch of "+ Double.toString(pitch) +" hz.");
+                    pitchResults.add(pitch);
+                    pitchResultLock.unlock();
+                    //Log.d("PitchDetectorResult", "Calculated a pitch of "+ Double.toString(pitch) +" hz from " + Math.min(1024, remainingSamples) + " samples.");
                 }
             };
             postTask(task);
         }
-
+        return pitchResults;
 
     }
 
