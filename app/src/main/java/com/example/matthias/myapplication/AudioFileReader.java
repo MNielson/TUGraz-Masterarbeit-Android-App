@@ -24,11 +24,11 @@ public class AudioFileReader {
     public void readAudioFile()
     {
 
-        InputStream ins = mContext.getResources().openRawResource(R.raw.output);
+        InputStream ins = mContext.getResources().openRawResource(R.raw.audio1000hzsine3sraw);
         try {
             byte[] foo = readBytes(ins);
             ins.close();
-            mAudioWorker.processSamples(HelperFunctions.convertByteToDouble(foo));
+            mAudioWorker.processSamples(HelperFunctions.convertByteToDoubleViaShort(foo));
         } catch (IOException e) {
             Log.d("readAudioFile", "IOException");
             e.printStackTrace();
