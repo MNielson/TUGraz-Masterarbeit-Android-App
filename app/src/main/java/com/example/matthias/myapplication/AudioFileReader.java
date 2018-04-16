@@ -1,11 +1,12 @@
 package com.example.matthias.myapplication;
 
 import android.content.Context;
-import android.util.Log;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.LinkedList;
 
 /**
@@ -24,16 +25,26 @@ public class AudioFileReader {
 
     public LinkedList<Double> readPitchFromAudioFile()
     {
-        LinkedList<Double> pitches = new LinkedList();
-        InputStream ins = mContext.getResources().openRawResource(R.raw.audio1000hzsine3sraw);
+
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        InputStream is = mContext.getResources().openRawResource(R.raw.audio1000hzsine3sraw);
+        byte[] temp = new byte[1024];
+        int read;
+
         try {
-            byte[] foo = readBytes(ins);
-            ins.close();
-            pitches = mAudioWorker.processSamples(HelperFunctions.convertByteToDoubleViaShort(foo));
+            while((read = is.read(temp)) >= 0){
+                buffer.write(temp, 0, read);
+            }
         } catch (IOException e) {
-            Log.d("readAudioFile", "IOException");
             e.printStackTrace();
         }
+
+        byte[] bytes = buffer.toByteArray();
+        short[] shorts = new short[bytes.length/2];
+        // to turn bytes to shorts as either big endian or little endian.
+        ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
+        LinkedList<Double> pitches = new LinkedList();
+        pitches = mAudioWorker.computePitches(HelperFunctions.convertShortToDouble(shorts));
         return pitches;
     }
 

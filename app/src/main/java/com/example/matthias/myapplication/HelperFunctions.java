@@ -2,6 +2,8 @@ package com.example.matthias.myapplication;
 
 import android.util.Log;
 
+import java.util.LinkedList;
+
 /**
  * Created by Matthias on 20.03.2018.
  */
@@ -48,5 +50,14 @@ public class HelperFunctions {
             return shortArray;
         }
 
+    }
+
+    static String generateTextResults(LinkedList<Double> pitches)
+    {
+        String result = "";
+        for (Double pitch: pitches) {
+            result += pitch.toString() + "hz\n";
+        }
+        return result;
     }
 }

@@ -15,9 +15,7 @@ PitchDetector::PitchDetector() {
 }
 
 double PitchDetector::computePitch(double * samples, int startsample, int samplecount) {
-    //mtx.lock();
     double pitch = dywapitch_computepitch(mdywapitchtracker, samples, startsample, samplecount);
-    //mtx.unlock();
     return pitch;
 }
 

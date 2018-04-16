@@ -2,7 +2,6 @@ package com.example.matthias.myapplication;
 
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.util.Log;
 
 import java.util.LinkedList;
 
@@ -32,21 +31,19 @@ public class AudioWorker extends HandlerThread {
         mWorkerHandler.post(task);
     }
 
-    public void processSample(final double[] sample)
+    public double computePitch(final Double[] sample)
     {
-        //generate a task
-        //post task
-        Runnable task = new Runnable() {
-            @Override
-            public void run() {
-                double pitch = mPitchDetector.computePitch(sample, 0, Math.min(1024, sample.length));
-                Log.d("PitchDetectorResult", "Calculated a pitch of "+ Double.toString(pitch) +" hz.");
-            }
-        };
-        postTask(task);
+
+        //unbox samples
+        int len = sample.length;
+        double[] primSamples = new double[len];
+        for(int i = 0; i < len; i++)
+            primSamples[i] = sample[i].doubleValue();
+        double pitch = mPitchDetector.computePitch(primSamples, 0, sample.length);
+        return pitch;
     }
 
-    public LinkedList<Double> processSamples(final Double[] samples)
+    public LinkedList<Double> computePitches(final Double[] samples)
     {
         pitchResults.clear();
         int len = samples.length;
@@ -64,20 +61,6 @@ public class AudioWorker extends HandlerThread {
 
             double pitch = mPitchDetector.computePitch(primSamples, startSample, Math.min(1024, remainingSamples));
             pitchResults.add(pitch);
-/*
-            Runnable task = new Runnable() {
-                @Override
-                public void run() {
-                    // TODO: Figure out if we're losing samples or racing somewhere
-                    pitchResultLock.lock();
-                    double pitch = mPitchDetector.computePitch(samples, startSample, Math.min(1024, remainingSamples));
-
-                    pitchResultLock.unlock();
-                    //Log.d("PitchDetectorResult", "Calculated a pitch of "+ Double.toString(pitch) +" hz from " + Math.min(1024, remainingSamples) + " samples.");
-                }
-            };
-            postTask(task);
-*/
         }
         return pitchResults;
 
