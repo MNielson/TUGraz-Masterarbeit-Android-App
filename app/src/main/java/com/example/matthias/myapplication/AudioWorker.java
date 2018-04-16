@@ -46,16 +46,23 @@ public class AudioWorker extends HandlerThread {
         postTask(task);
     }
 
-    public LinkedList<Double> processSamples(final double[] samples)
+    public LinkedList<Double> processSamples(final Double[] samples)
     {
         pitchResults.clear();
         int len = samples.length;
         int numSamples = (int) Math.ceil(len / doublesPerSample);
+
+        //unbox samples
+        double[] primSamples = new double[samples.length];
+        for(int i = 0; i < samples.length; i++)
+            primSamples[i] = samples[i].doubleValue();
+
         for(int i = 0; i < numSamples; i++)
         {
             int startSample = doublesPerSample * i;
             int remainingSamples = len - startSample;
-            double pitch = mPitchDetector.computePitch(samples, startSample, Math.min(1024, remainingSamples));
+
+            double pitch = mPitchDetector.computePitch(primSamples, startSample, Math.min(1024, remainingSamples));
             pitchResults.add(pitch);
 /*
             Runnable task = new Runnable() {

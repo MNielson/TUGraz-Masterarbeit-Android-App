@@ -8,7 +8,7 @@ import android.util.Log;
 
 public class HelperFunctions {
 
-    static double[] convertByteToDoubleViaShort(byte[] byteArray){
+    static Double[] convertByteToDoubleViaShort(byte[] byteArray){
         return convertShortToDouble(convertByteToShort(byteArray));
     }
 
@@ -20,9 +20,9 @@ public class HelperFunctions {
         return doubleArray;
     }
 
-    static double[] convertShortToDouble(short[] shortArray){
+    static Double[] convertShortToDouble(short[] shortArray){
         int size = shortArray.length;
-        double[] doubleArray = new double[size];
+        Double[] doubleArray = new Double[size];
         for (int index = 0; index < size; index++)
             doubleArray[index] = (double) shortArray[index];
         return doubleArray;
