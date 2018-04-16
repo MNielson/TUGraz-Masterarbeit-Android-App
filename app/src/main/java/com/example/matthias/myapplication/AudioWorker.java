@@ -5,8 +5,6 @@ import android.os.HandlerThread;
 import android.util.Log;
 
 import java.util.LinkedList;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * Created by Matthias on 20.03.2018.
@@ -19,7 +17,7 @@ public class AudioWorker extends HandlerThread {
     private short[] audioBuffer;
     private PitchDetector mPitchDetector;
     private int doublesPerSample = 1024;
-    private Lock pitchResultLock;
+    //private Lock pitchResultLock;
     private LinkedList<Double> pitchResults;
 
 
@@ -27,7 +25,7 @@ public class AudioWorker extends HandlerThread {
         super(name);
         mPitchDetector = pd;
         pitchResults = new LinkedList();
-        pitchResultLock = new ReentrantLock();
+        //pitchResultLock = new ReentrantLock();
     }
 
     private void postTask(Runnable task){
@@ -55,8 +53,8 @@ public class AudioWorker extends HandlerThread {
         int numSamples = (int) Math.ceil(len / doublesPerSample);
         for(int i = 0; i < numSamples; i++)
         {
-            final int startSample = doublesPerSample * i;
-            final int remainingSamples = len - startSample;
+            int startSample = doublesPerSample * i;
+            int remainingSamples = len - startSample;
             double pitch = mPitchDetector.computePitch(samples, startSample, Math.min(1024, remainingSamples));
             pitchResults.add(pitch);
 /*
