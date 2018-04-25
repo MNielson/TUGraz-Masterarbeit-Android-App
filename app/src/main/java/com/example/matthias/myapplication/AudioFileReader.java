@@ -43,8 +43,7 @@ public class AudioFileReader {
         short[] shorts = new short[bytes.length/2];
         // to turn bytes to shorts as either big endian or little endian.
         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
-        LinkedList<Double> pitches = new LinkedList();
-        pitches = mAudioWorker.computePitches(HelperFunctions.convertShortToDouble(shorts));
+        LinkedList<Double> pitches = mAudioWorker.computePitches(HelperFunctions.convertShortToDouble(shorts));
         return pitches;
     }
 

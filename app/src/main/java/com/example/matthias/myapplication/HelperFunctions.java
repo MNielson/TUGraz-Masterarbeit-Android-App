@@ -2,6 +2,8 @@ package com.example.matthias.myapplication;
 
 import android.util.Log;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.LinkedList;
 
 /**
@@ -52,6 +54,15 @@ public class HelperFunctions {
 
     }
 
+    static byte[] convertShortToByte(short[] shortArray){
+
+        ByteBuffer buffer = ByteBuffer.allocate(shortArray.length * 2);
+        buffer.order(ByteOrder.LITTLE_ENDIAN);
+        buffer.asShortBuffer().put(shortArray);
+        byte[] bytes = buffer.array();
+        return bytes;
+    }
+
     static String generateTextResults(LinkedList<Double> pitches)
     {
         String result = "";
@@ -60,4 +71,6 @@ public class HelperFunctions {
         }
         return result;
     }
+
+
 }
