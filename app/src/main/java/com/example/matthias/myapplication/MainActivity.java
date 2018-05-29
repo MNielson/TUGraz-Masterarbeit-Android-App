@@ -8,6 +8,8 @@ import android.media.MediaRecorder;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -16,9 +18,10 @@ import android.view.View;
 import android.widget.TextView;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -33,11 +36,12 @@ public class MainActivity extends AppCompatActivity {
     private AudioFileReader mAudioFileReader;
     private PitchDetector mPitchDetector;
 
+    private ArrayList<short[]> audioBuffers = new ArrayList<>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
 
         // Example of a call to a native method
         TextView tv = findViewById(R.id.text_results);
@@ -46,6 +50,24 @@ public class MainActivity extends AppCompatActivity {
         mAudioWorker = new AudioWorker("foo", mPitchDetector);
         mAudioFileReader = new AudioFileReader(mAudioWorker, this);
         requestRecordAudioPermission();
+
+
+
+        mHandler = new Handler(Looper.getMainLooper()) {
+            /*
+         * handleMessage() defines the operations to perform when
+         * the Handler receives a new Message to process.
+         */
+            @Override
+            public void handleMessage(Message inputMessage) {
+                // Gets the image task from the incoming Message object.
+                Bundle bundle = (Bundle) inputMessage.obj;
+                short[] audioBuffer = bundle.getShortArray("AudioBuffer");
+                audioBuffers.add(audioBuffer);
+                Log.d(LOG_TAG, "Stuff");
+            }
+
+        };
 
     }
 
@@ -69,11 +91,12 @@ public class MainActivity extends AppCompatActivity {
     //onclick button
     public void onClickStopAudioRecording(View view) {
         mShouldContinue = false;
+        audioBuffers.size();
     }
 
 
     void recordAudio() throws IOException {
-
+        /*
         File folder = getPublicMusicStorageDir("test");
         final File outputFile = new File(folder, "myRawAudioFile.raw");
         // if file doesnt exists, then create it
@@ -83,10 +106,8 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("FOO", "Tried to create file and failed somehow.");
             }
         }
-
-
         final FileOutputStream outputStream = new FileOutputStream(outputFile);
-
+        */
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -121,23 +142,36 @@ public class MainActivity extends AppCompatActivity {
                 while (mShouldContinue) {
                     int numberOfShort = record.read(audioBuffer, 0, audioBuffer.length);
                     shortsRead += numberOfShort;
+                    /*
                     try {
                         outputStream.write(HelperFunctions.convertShortToByte(audioBuffer));
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-
+                    */
                     // Do something with the audioBuffer
+                    Random r = new Random();
+                    if (r.nextInt(10) == 9)
+                    {
+                        Log.v("", ""); //randomly check audioBuffer. audioBuffer contains different data every time
+                    }
                     Double pitch = mAudioWorker.computePitch(HelperFunctions.convertShortToDouble(audioBuffer));
-                    someFunction(pitch);
+                    Log.d(LOG_TAG, "W-Pitch:" + pitch);
+                    Bundle bundle = new Bundle();
+                    bundle.putShortArray("AudioBuffer", audioBuffer);
+                    Message msg = new Message();
+                    msg.obj = bundle;
+                    mHandler.sendMessage(msg);
 
                 }
+                /*
                 try {
                     outputStream.flush();
                     outputStream.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                */
                 record.stop();
                 record.release();
 
