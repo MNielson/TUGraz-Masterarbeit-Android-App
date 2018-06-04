@@ -31,7 +31,7 @@ public class AudioWorker extends HandlerThread {
         mWorkerHandler.post(task);
     }
 
-    public double computePitch(final Double[] sample)
+    public double computePitch(Double[] sample)
     {
 
         //unbox samples

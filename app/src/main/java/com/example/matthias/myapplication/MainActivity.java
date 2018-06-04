@@ -91,7 +91,7 @@ public class MainActivity extends AppCompatActivity {
     //onclick button
     public void onClickStopAudioRecording(View view) {
         mShouldContinue = false;
-        audioBuffers.size();
+        audioBuffers.size(); //audioBuffers always contains the same data here.
     }
 
 
@@ -141,6 +141,11 @@ public class MainActivity extends AppCompatActivity {
                 long shortsRead = 0;
                 while (mShouldContinue) {
                     int numberOfShort = record.read(audioBuffer, 0, audioBuffer.length);
+
+                    short[] workBuffer = new short[audioBuffer.length];
+
+                    System.arraycopy( audioBuffer, 0, workBuffer, 0, audioBuffer.length );
+
                     shortsRead += numberOfShort;
                     /*
                     try {
@@ -153,12 +158,12 @@ public class MainActivity extends AppCompatActivity {
                     Random r = new Random();
                     if (r.nextInt(10) == 9)
                     {
-                        Log.v("", ""); //randomly check audioBuffer. audioBuffer contains different data every time
+                        Log.v("", ""); //break here to randomly check audioBuffer. audioBuffer contains different data every time
                     }
-                    Double pitch = mAudioWorker.computePitch(HelperFunctions.convertShortToDouble(audioBuffer));
+                    Double pitch = mAudioWorker.computePitch(HelperFunctions.convertShortToDouble(workBuffer));
                     Log.d(LOG_TAG, "W-Pitch:" + pitch);
                     Bundle bundle = new Bundle();
-                    bundle.putShortArray("AudioBuffer", audioBuffer);
+                    bundle.putShortArray("AudioBuffer", workBuffer);
                     Message msg = new Message();
                     msg.obj = bundle;
                     mHandler.sendMessage(msg);
