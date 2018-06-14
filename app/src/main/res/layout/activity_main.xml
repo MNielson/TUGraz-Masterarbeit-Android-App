@@ -6,22 +6,6 @@
     android:layout_height="match_parent"
     tools:context="com.example.matthias.myapplication.MainActivity">
 
-    <TextView
-        android:id="@+id/text_results"
-        android:layout_width="282dp"
-        android:layout_height="275dp"
-        android:layout_marginBottom="8dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginStart="18dp"
-        android:layout_marginTop="8dp"
-        app:layout_constraintBottom_toTopOf="@+id/button2"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.515"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/textView"
-        android:layout_marginLeft="18dp"
-        android:layout_marginRight="8dp" />
-
     <Button
         android:id="@+id/button"
         android:layout_width="wrap_content"
@@ -65,13 +49,14 @@
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginLeft="16dp" />
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <com.jjoe64.graphview.GraphView
+        android:id="@+id/graph"
+        android:layout_width="352dp"
+        android:layout_height="200dip"
+        android:layout_marginStart="30dp"
         android:layout_marginTop="8dp"
-        android:text="@string/text_Results"
-        app:layout_constraintStart_toStartOf="@+id/text_results"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginLeft="30dp" />
 
 </android.support.constraint.ConstraintLayout>

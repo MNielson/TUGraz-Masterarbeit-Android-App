@@ -15,7 +15,10 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
-import android.widget.TextView;
+
+import com.jjoe64.graphview.GraphView;
+import com.jjoe64.graphview.series.DataPoint;
+import com.jjoe64.graphview.series.LineGraphSeries;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,19 +41,41 @@ public class MainActivity extends AppCompatActivity {
 
     private ArrayList<short[]> audioBuffers = new ArrayList<>();
 
+    private double mGraphLastXValue = 0;
+    private LineGraphSeries<DataPoint> mSeries;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         // Example of a call to a native method
-        TextView tv = findViewById(R.id.text_results);
+        //TextView tv = findViewById(R.id.text_results);
         //tv.setText(stringFromJNI());
         mPitchDetector = new PitchDetector();
         mAudioWorker = new AudioWorker("foo", mPitchDetector);
         mAudioFileReader = new AudioFileReader(mAudioWorker, this);
         requestRecordAudioPermission();
 
+
+
+        GraphView graph = (GraphView) findViewById(R.id.graph);
+        mSeries = new LineGraphSeries<>();
+        graph.addSeries(mSeries);
+
+        graph.getViewport().setXAxisBoundsManual(true);
+        graph.getViewport().setMinX(0);
+        graph.getViewport().setMaxX(40);
+
+        // set manual Y bounds
+        //graph.getViewport().setYAxisBoundsManual(true);
+        //graph.getViewport().setMinY(0);
+        //graph.getViewport().setMaxY(300);
+
+        graph.getGridLabelRenderer().setTextSize(20.0f);
+        //mSeries.appendData(new DataPoint(-3.0, 5000), false, 1000);
+        //mSeries.appendData(new DataPoint(-2.0, 1000), false, 1000);
+        //mSeries.appendData(new DataPoint(-1.0,  300), false, 1000);
 
 
         mHandler = new Handler(Looper.getMainLooper()) {
@@ -63,19 +88,20 @@ public class MainActivity extends AppCompatActivity {
                 // Gets the image task from the incoming Message object.
                 Bundle bundle = (Bundle) inputMessage.obj;
                 short[] audioBuffer = bundle.getShortArray("AudioBuffer");
+                double pitch = bundle.getDouble("Pitch");
                 audioBuffers.add(audioBuffer);
+                mSeries.appendData(new DataPoint(mGraphLastXValue, pitch+1d), true, 1000);
+                mGraphLastXValue += 0.5d;
                 Log.d(LOG_TAG, "Stuff");
             }
-
         };
-
     }
 
     //onclick button
     public void analyseFile(View view){
         LinkedList<Double> pitches = mAudioFileReader.readPitchFromAudioFile();
-        TextView tv = findViewById(R.id.text_results);
-        tv.setText(HelperFunctions.generateTextResults(pitches));
+        //TextView tv = findViewById(R.id.text_results);
+        //tv.setText(HelperFunctions.generateTextResults(pitches));
     }
 
     //onclick button
@@ -160,10 +186,11 @@ public class MainActivity extends AppCompatActivity {
                     {
                         Log.v("", ""); //break here to randomly check audioBuffer. audioBuffer contains different data every time
                     }
-                    Double pitch = mAudioWorker.computePitch(HelperFunctions.convertShortToDouble(workBuffer));
+                    Double pitch = new Double(mAudioWorker.computePitch(HelperFunctions.convertShortToDouble(workBuffer)));
                     Log.d(LOG_TAG, "W-Pitch:" + pitch);
                     Bundle bundle = new Bundle();
                     bundle.putShortArray("AudioBuffer", workBuffer);
+                    bundle.putDouble("Pitch", pitch);
                     Message msg = new Message();
                     msg.obj = bundle;
                     mHandler.sendMessage(msg);
@@ -236,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
             // permissions this app might request
         }
     }
-
+/*
     public void someFunction(Double pitch)
     {
         final String someText = "\n\n\n foo             " + pitch.toString() +"hz";
@@ -248,6 +275,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+*/
+
 
     /* Checks if external storage is available for read and write */
     public boolean isExternalStorageWritable() {
