@@ -26,10 +26,20 @@ android {
             path "CMakeLists.txt"
         }
     }
+    /*
+    dexOptions {
+        preDexLibraries = false
+    }
+    defaultConfig {
+        multiDexEnabled true
+    }
+    */
+
 }
 
 dependencies {
-    compile group: 'uk.me.berndporr', name:'iirj', version: '1.1'
+    //implementation group: 'uk.me.berndporr', name:'iirj', version: '1.1'
+    compile 'org.apache.commons:commons-math3:3.6.1'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.0.2'
@@ -39,3 +49,4 @@ dependencies {
     implementation 'com.jjoe64:graphview:4.2.2'
 
 }
+
