@@ -30,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'native-lib' library on application startup.
 
-    final int SAMPLE_RATE = 16000; // 16k for speech. 44.1k for music.
+    final int SAMPLE_RATE = 44100; // 16k for speech. 44.1k for music.
     final String LOG_TAG = "Audio-Recording";
     private Handler mHandler;
     boolean mShouldContinue;
@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private AudioWorker mAudioWorker;
     private AudioFileReader mAudioFileReader;
     private PitchDetector mPitchDetector;
+    private SyllableDetector mSyllableDetector;
 
     private ArrayList<short[]> audioBuffers = new ArrayList<>();
 
@@ -52,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
         // Example of a call to a native method
         //TextView tv = findViewById(R.id.text_results);
         //tv.setText(stringFromJNI());
+        mSyllableDetector = new SyllableDetector(5.0d);
         mPitchDetector = new PitchDetector();
         mAudioWorker = new AudioWorker("foo", mPitchDetector);
         mAudioFileReader = new AudioFileReader(mAudioWorker, this);
@@ -89,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
                 Bundle bundle = (Bundle) inputMessage.obj;
                 short[] audioBuffer = bundle.getShortArray("AudioBuffer");
                 double pitch = bundle.getDouble("Pitch");
+                mSyllableDetector.addPitch(pitch);
                 audioBuffers.add(audioBuffer);
                 mSeries.appendData(new DataPoint(mGraphLastXValue, pitch+1d), true, 1000);
                 mGraphLastXValue += 0.5d;
@@ -118,6 +121,8 @@ public class MainActivity extends AppCompatActivity {
     public void onClickStopAudioRecording(View view) {
         mShouldContinue = false;
         audioBuffers.size(); //audioBuffers always contains the same data here.
+        int numPeaks = mSyllableDetector.countPeaks();
+        Log.d(LOG_TAG, "Detected " +numPeaks+ " peaks / syllables? in recorded audio.");
     }
 
 
