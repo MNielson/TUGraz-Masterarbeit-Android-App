@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Random;
 
+import uk.me.berndporr.iirj.Butterworth;
+
 public class MainActivity extends AppCompatActivity {
 
     // Used to load the 'native-lib' library on application startup.
@@ -45,6 +47,14 @@ public class MainActivity extends AppCompatActivity {
     private double mGraphLastXValue = 0;
     private LineGraphSeries<DataPoint> mSeries;
 
+    // Bandpass Frequencies
+    final int FL = 50;
+    final int FH = 50;
+    private Butterworth mBandpass;
+
+    // Filterbank
+    private Filterbank mFilterbank;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,25 +69,38 @@ public class MainActivity extends AppCompatActivity {
         mAudioFileReader = new AudioFileReader(mAudioWorker, this);
         requestRecordAudioPermission();
 
+        mBandpass = new Butterworth();
+        mBandpass.bandPass(2, SAMPLE_RATE, (FH - FL) / 2, FH - FL);
 
+        mFilterbank = new Filterbank(SAMPLE_RATE);
+        mFilterbank.addFilter(2,  240, 120 );
+        mFilterbank.addFilter(2,  480, 120 );
+        mFilterbank.addFilter(2,  360, 120 );
+        mFilterbank.addFilter(2,  600, 120 );
+        mFilterbank.addFilter(2,  720, 120 );
+        mFilterbank.addFilter(2,  840, 120 );
+        mFilterbank.addFilter(2, 1000, 150 );
+        mFilterbank.addFilter(2, 1150, 150 );
+        mFilterbank.addFilter(2, 1300, 150 );
+        mFilterbank.addFilter(2, 1450, 150 );
+        mFilterbank.addFilter(2, 1600, 150 );
+        mFilterbank.addFilter(2, 1800, 200 );
+        mFilterbank.addFilter(2, 2000, 200 );
+        mFilterbank.addFilter(2, 2200, 200 );
+        mFilterbank.addFilter(2, 2400, 200 );
+        mFilterbank.addFilter(2, 2700, 300 );
+        mFilterbank.addFilter(2, 3000, 300 );
+        mFilterbank.addFilter(2, 3300, 300 );
+        mFilterbank.addFilter(2, 3750, 500 );
 
-        GraphView graph = (GraphView) findViewById(R.id.graph);
+        GraphView graph = findViewById(R.id.graph);
         mSeries = new LineGraphSeries<>();
         graph.addSeries(mSeries);
 
         graph.getViewport().setXAxisBoundsManual(true);
         graph.getViewport().setMinX(0);
         graph.getViewport().setMaxX(40);
-
-        // set manual Y bounds
-        //graph.getViewport().setYAxisBoundsManual(true);
-        //graph.getViewport().setMinY(0);
-        //graph.getViewport().setMaxY(300);
-
         graph.getGridLabelRenderer().setTextSize(20.0f);
-        //mSeries.appendData(new DataPoint(-3.0, 5000), false, 1000);
-        //mSeries.appendData(new DataPoint(-2.0, 1000), false, 1000);
-        //mSeries.appendData(new DataPoint(-1.0,  300), false, 1000);
 
 
         mHandler = new Handler(Looper.getMainLooper()) {
@@ -91,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                 Bundle bundle = (Bundle) inputMessage.obj;
                 short[] audioBuffer = bundle.getShortArray("AudioBuffer");
                 double pitch = bundle.getDouble("Pitch");
-                mSyllableDetector.addPitch(pitch);
+                //mSyllableDetector.addPitch(pitch);
                 audioBuffers.add(audioBuffer);
                 mSeries.appendData(new DataPoint(mGraphLastXValue, pitch+1d), true, 1000);
                 mGraphLastXValue += 0.5d;
@@ -121,8 +144,8 @@ public class MainActivity extends AppCompatActivity {
     public void onClickStopAudioRecording(View view) {
         mShouldContinue = false;
         audioBuffers.size(); //audioBuffers always contains the same data here.
-        int numPeaks = mSyllableDetector.countPeaks();
-        Log.d(LOG_TAG, "Detected " +numPeaks+ " peaks / syllables? in recorded audio.");
+        //int numPeaks = mSyllableDetector.countPeaks();
+        //Log.d(LOG_TAG, "Detected " +numPeaks+ " peaks / syllables? in recorded audio.");
     }
 
 
@@ -174,24 +197,18 @@ public class MainActivity extends AppCompatActivity {
                     int numberOfShort = record.read(audioBuffer, 0, audioBuffer.length);
 
                     short[] workBuffer = new short[audioBuffer.length];
-
                     System.arraycopy( audioBuffer, 0, workBuffer, 0, audioBuffer.length );
-
                     shortsRead += numberOfShort;
-                    /*
-                    try {
-                        outputStream.write(HelperFunctions.convertShortToByte(audioBuffer));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    */
-                    // Do something with the audioBuffer
-                    Random r = new Random();
-                    if (r.nextInt(10) == 9)
+
+
+                    //filter microphone input
+                    Double filtered[] = new Double[audioBuffer.length];
+                    for(int i = 0; i < audioBuffer.length; i++)
                     {
-                        Log.v("", ""); //break here to randomly check audioBuffer. audioBuffer contains different data every time
+                        filtered[i] = mBandpass.filter(workBuffer[i]);
                     }
-                    Double pitch = new Double(mAudioWorker.computePitch(HelperFunctions.convertShortToDouble(workBuffer)));
+
+                    Double pitch = new Double(mAudioWorker.computePitch(filtered));
                     Log.d(LOG_TAG, "W-Pitch:" + pitch);
                     Bundle bundle = new Bundle();
                     bundle.putShortArray("AudioBuffer", workBuffer);
@@ -201,14 +218,7 @@ public class MainActivity extends AppCompatActivity {
                     mHandler.sendMessage(msg);
 
                 }
-                /*
-                try {
-                    outputStream.flush();
-                    outputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                */
+
                 record.stop();
                 record.release();
 
@@ -286,20 +296,14 @@ public class MainActivity extends AppCompatActivity {
     /* Checks if external storage is available for read and write */
     public boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
+        return Environment.MEDIA_MOUNTED.equals(state);
     }
 
     /* Checks if external storage is available to at least read */
     public boolean isExternalStorageReadable() {
         String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state) ||
-                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
-            return true;
-        }
-        return false;
+        return Environment.MEDIA_MOUNTED.equals(state) ||
+                Environment.MEDIA_MOUNTED_READ_ONLY.equals(state);
     }
 
     public File getPublicMusicStorageDir(String albumName) {

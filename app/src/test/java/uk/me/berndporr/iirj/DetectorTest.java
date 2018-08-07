@@ -34,7 +34,7 @@ import org.junit.Test;
 // The center and bandwidth here are experimental results so that the
 // impulse response resembles the timing of an R peak.
 public class DetectorTest {
-
+/*
 	static String prefix="target/surefire-reports/detector/";
 
 	void createDir() {
@@ -58,7 +58,7 @@ public class DetectorTest {
 		PrintStream hr = new PrintStream(heartrate);
 		
 		Scanner is = new Scanner(new File("src/test/resources/ecg.dat"));
-		
+
 		double max = 0;
 		double t1=0,t2=0;
 		int notDet = 0;
@@ -111,5 +111,5 @@ public class DetectorTest {
 		detTest();
 		} catch (Exception e) {};
 	}
-
+*/
 }
