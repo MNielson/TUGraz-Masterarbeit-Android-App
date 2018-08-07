@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
         // Example of a call to a native method
         //TextView tv = findViewById(R.id.text_results);
         //tv.setText(stringFromJNI());
-        mSyllableDetector = new SyllableDetector(5.0d);
+
         mPitchDetector = new PitchDetector();
         mAudioWorker = new AudioWorker("foo", mPitchDetector);
         mAudioFileReader = new AudioFileReader(mAudioWorker, this);
@@ -97,6 +97,7 @@ public class MainActivity extends AppCompatActivity {
         mFilterbank.addFilter(2, 3000, 300 );
         mFilterbank.addFilter(2, 3300, 300 );
         mFilterbank.addFilter(2, 3750, 500 );
+        mSyllableDetector = new SyllableDetector(mFilterbank);
 
         GraphView graph = findViewById(R.id.graph);
         mSeries = new LineGraphSeries<>();
@@ -149,10 +150,12 @@ public class MainActivity extends AppCompatActivity {
                 Uri uri = data.getData();
                 try {
                     InputStream is = getContentResolver().openInputStream(uri);
-                    byte[] content = new byte[is.available()];
-                    content = convertStreamToByteArray(is);
-
-                    double pitch = mAudioWorker.computePitch(HelperFunctions.convertByteToDoubleViaShort(content));
+                    byte[] content = convertStreamToByteArray(is);
+                    int byte_len = content.length;
+                    Double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
+                    int double_len = d.length;
+                    Signal s = new Signal(d);
+                    int numSyllables = mSyllableDetector.countSyllables(s);
                     Log.d("foo", "bar");
 
                 } catch (FileNotFoundException e) {
@@ -239,13 +242,14 @@ public class MainActivity extends AppCompatActivity {
 
 
                     //filter microphone input
-                    Double filtered[] = new Double[audioBuffer.length];
+                    Double f[] = new Double[audioBuffer.length];
                     for(int i = 0; i < audioBuffer.length; i++)
                     {
-                        filtered[i] = mBandpass.filter(workBuffer[i]);
+                        f[i] = mBandpass.filter(workBuffer[i]);
                     }
+                    Signal filteredSignal = new Signal(f);
 
-                    Double pitch = new Double(mAudioWorker.computePitch(filtered));
+                    Double pitch = new Double(mAudioWorker.computePitch(filteredSignal));
                     Log.d(LOG_TAG, "W-Pitch:" + pitch);
                     Bundle bundle = new Bundle();
                     bundle.putShortArray("AudioBuffer", workBuffer);

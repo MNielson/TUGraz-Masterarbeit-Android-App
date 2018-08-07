@@ -31,15 +31,15 @@ public class AudioWorker extends HandlerThread {
         mWorkerHandler.post(task);
     }
 
-    public double computePitch(Double[] sample)
+    public double computePitch(Signal signal)
     {
 
         //unbox samples
-        int len = sample.length;
+        int len = signal.getSignal().length;
         double[] primSamples = new double[len];
         for(int i = 0; i < len; i++)
-            primSamples[i] = sample[i].doubleValue();
-        double pitch = mPitchDetector.computePitch(primSamples, 0, sample.length);
+            primSamples[i] = signal.getSignal()[i].doubleValue();
+        double pitch = mPitchDetector.computePitch(primSamples, 0, signal.getSignal().length);
         return pitch;
     }
 

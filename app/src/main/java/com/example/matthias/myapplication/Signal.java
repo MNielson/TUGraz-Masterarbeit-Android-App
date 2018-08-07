@@ -23,7 +23,7 @@ public class Signal {
 
     public Signal(ArrayList<Double> sig)
     {
-        this.signal = (Double[]) sig.toArray();
+        this.signal = sig.toArray(new Double[sig.size()]);
     }
 
     public Double computeEnergy()
@@ -34,4 +34,38 @@ public class Signal {
         }
         return e;
     }
+
+    public Signal computeEnergyInChunks(int chunkSize)
+    {
+        int len = signal.length;
+        int numChunks = (int)Math.ceil( (double)len / (double)chunkSize);
+        Double[] d = new Double[numChunks];
+        boolean lastChunkSmall = false;
+        int lastChunkSize = chunkSize;
+        if (len % chunkSize != 0)
+        {
+            // last chunk is small
+            lastChunkSmall = true;
+            lastChunkSize = len % chunkSize;
+        }
+
+        for(int i = 0; i < numChunks; i++)
+        {
+            Double e = 0.0;
+            int numElemensInChunk = chunkSize;
+            if (i == (numChunks-1) && lastChunkSmall)
+            {
+                numElemensInChunk = lastChunkSize;
+            }
+            for(int j = 0; j < numElemensInChunk; j++)
+            {
+                double temp = signal[i * chunkSize + j];
+                e += Math.pow(Math.abs(temp), 2);
+            }
+            d[i] = e;
+        }
+        Signal energySig = new Signal(d);
+        return energySig;
+    }
+
 }

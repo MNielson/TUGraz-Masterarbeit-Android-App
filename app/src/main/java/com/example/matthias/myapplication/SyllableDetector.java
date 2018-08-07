@@ -4,6 +4,7 @@ import android.util.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Filter;
 
 /**
  * Created by Matthias on 13.07.2018.
@@ -12,25 +13,30 @@ import java.util.List;
 public class SyllableDetector {
     //private List<Double> pitches;
     private Double delta;
+    private Filterbank mFilterbank;
 
-    public SyllableDetector(Double delta) {
+    public void setmChunkSize(int chunkSize) {
+        this.mChunkSize = chunkSize;
+    }
+
+    private int mChunkSize = 4410;
+
+    public SyllableDetector(Double delta, Filterbank filterbank) {
         this.delta = delta;
+        this.mFilterbank = filterbank;
         //pitches = new ArrayList<>();
     }
 
-    public SyllableDetector(){
-        this(0.0d);
+    public SyllableDetector(Filterbank filterbank) {
+        this.delta = 0.0d;
+        this.mFilterbank = filterbank;
     }
-/*
-    public void addPitch(Double pitch) {
-        this.pitches.add(pitch);
-    }
-*/
+
     public void setDelta(Double delta) {
         this.delta = delta;
     }
 
-    public int countPeaks(Signal sig)
+    private int countPeaks(Signal sig)
     {
         Pair<List<Double>, List<Double>> peaks = detectPeaks(sig);
         return peaks.first.size();
@@ -92,10 +98,23 @@ public class SyllableDetector {
                     foo += sigs.get(i).getSignal()[k] * sigs.get(j).getSignal()[k];
                 }
             }
-            bla[k] = foo;
+            bla[k] = foo / M;
         }
         Signal bar = new Signal(bla);
         return bar;
 
+    }
+
+    public int countSyllables(Signal sig)
+    {
+        ArrayList<Signal> filteredSignals = mFilterbank.filter(sig);
+        ArrayList<Signal> energySigs = new ArrayList<>();
+        for(Signal fSig : filteredSignals)
+        {
+            energySigs.add(fSig.computeEnergyInChunks(mChunkSize));
+        }
+        Signal trajectory = computeTrajectory(energySigs);
+        int numPeaks = countPeaks(trajectory);
+        return numPeaks;
     }
 }
