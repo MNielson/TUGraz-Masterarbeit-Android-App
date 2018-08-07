@@ -1,10 +1,12 @@
 package com.example.matthias.myapplication;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -20,8 +22,11 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Random;
@@ -110,7 +115,6 @@ public class MainActivity extends AppCompatActivity {
          */
             @Override
             public void handleMessage(Message inputMessage) {
-                // Gets the image task from the incoming Message object.
                 Bundle bundle = (Bundle) inputMessage.obj;
                 short[] audioBuffer = bundle.getShortArray("AudioBuffer");
                 double pitch = bundle.getDouble("Pitch");
@@ -128,7 +132,40 @@ public class MainActivity extends AppCompatActivity {
         LinkedList<Double> pitches = mAudioFileReader.readPitchFromAudioFile();
         //TextView tv = findViewById(R.id.text_results);
         //tv.setText(HelperFunctions.generateTextResults(pitches));
+        Intent intent_upload = new Intent();
+        intent_upload.setType("audio/*");
+        intent_upload.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(intent_upload,1);
+
     }
+    @Override
+    protected void onActivityResult(int requestCode,int resultCode,Intent data){
+
+        if(requestCode == 1){
+
+            if(resultCode == RESULT_OK){
+
+                //the selected audio.
+                Uri uri = data.getData();
+                try {
+                    InputStream is = getContentResolver().openInputStream(uri);
+                    byte[] content = new byte[is.available()];
+                    content = convertStreamToByteArray(is);
+
+                    double pitch = mAudioWorker.computePitch(HelperFunctions.convertByteToDoubleViaShort(content));
+                    Log.d("foo", "bar");
+
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data);
+    }
+
 
     //onclick button
     public void onClickStartAudioRecording(View view) {
@@ -278,19 +315,7 @@ public class MainActivity extends AppCompatActivity {
             // permissions this app might request
         }
     }
-/*
-    public void someFunction(Double pitch)
-    {
-        final String someText = "\n\n\n foo             " + pitch.toString() +"hz";
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                TextView tv = findViewById(R.id.text_results);
-                tv.setText(someText);
-            }
-        });
-    }
-*/
+
 
 
     /* Checks if external storage is available for read and write */
@@ -316,4 +341,16 @@ public class MainActivity extends AppCompatActivity {
         }
         return file;
     }
+
+    public static byte[] convertStreamToByteArray(InputStream is) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        byte[] buff = new byte[10240];
+        int i = Integer.MAX_VALUE;
+        while ((i = is.read(buff, 0, buff.length)) > 0) {
+            baos.write(buff, 0, i);
+        }
+
+        return baos.toByteArray(); // be sure to close InputStream in calling function
+    }
+
 }
