@@ -80,28 +80,28 @@ public class SyllableDetector {
     }
 
 
-    private Signal computeTrajectory(ArrayList<Signal> sigs)
+    private Signal computeTrajectory(ArrayList<Signal> energySignals)
     {
-        int N = sigs.size();
+        int N = energySignals.size();
         Double M = N * (N-1) * 0.5;
 
-        Double[] bla = new Double[sigs.get(0).getSignal().length];
+        Double[] trajectoryValues = new Double[energySignals.get(0).getSignal().length];
 
 
-        for(int k = 0; k < bla.length; k++)
+        for(int k = 0; k < trajectoryValues.length; k++)
         {
             Double foo = 0.0;
-            for (int i = 1; i < N-1; i++)
+            for (int i = 0; i < N-2; i++)
             {
-                for (int j = i+1; j < N; j++)
+                for (int j = i+1; j < N-1; j++)
                 {
-                    foo += sigs.get(i).getSignal()[k] * sigs.get(j).getSignal()[k];
+                    foo += energySignals.get(i).getSignal()[k] * energySignals.get(j).getSignal()[k];
                 }
             }
-            bla[k] = foo / M;
+            trajectoryValues[k] = foo / M;
         }
-        Signal bar = new Signal(bla);
-        return bar;
+        Signal trajectory = new Signal(trajectoryValues);
+        return trajectory;
 
     }
 

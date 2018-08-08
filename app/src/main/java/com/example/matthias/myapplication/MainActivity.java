@@ -57,9 +57,6 @@ public class MainActivity extends AppCompatActivity {
     final int FH = 50;
     private Butterworth mBandpass;
 
-    // Filterbank
-    private Filterbank mFilterbank;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,10 +74,10 @@ public class MainActivity extends AppCompatActivity {
         mBandpass = new Butterworth();
         mBandpass.bandPass(2, SAMPLE_RATE, (FH - FL) / 2, FH - FL);
 
-        mFilterbank = new Filterbank(SAMPLE_RATE);
+        Filterbank mFilterbank = new Filterbank(SAMPLE_RATE);
         mFilterbank.addFilter(2,  240, 120 );
-        mFilterbank.addFilter(2,  480, 120 );
         mFilterbank.addFilter(2,  360, 120 );
+        mFilterbank.addFilter(2,  480, 120 );
         mFilterbank.addFilter(2,  600, 120 );
         mFilterbank.addFilter(2,  720, 120 );
         mFilterbank.addFilter(2,  840, 120 );
@@ -134,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
         //TextView tv = findViewById(R.id.text_results);
         //tv.setText(HelperFunctions.generateTextResults(pitches));
         Intent intent_upload = new Intent();
-        intent_upload.setType("audio/*");
+        intent_upload.setType("application/*");
         intent_upload.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent_upload,1);
 
@@ -348,7 +345,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static byte[] convertStreamToByteArray(InputStream is) throws IOException {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        byte[] buff = new byte[10240];
+        byte[] buff = new byte[100];
         int i = Integer.MAX_VALUE;
         while ((i = is.read(buff, 0, buff.length)) > 0) {
             baos.write(buff, 0, i);

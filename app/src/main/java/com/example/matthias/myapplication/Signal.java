@@ -37,29 +37,25 @@ public class Signal {
 
     public Signal computeEnergyInChunks(int chunkSize)
     {
-        int len = signal.length;
-        int numChunks = (int)Math.ceil( (double)len / (double)chunkSize);
-        Double[] d = new Double[numChunks];
-        boolean lastChunkSmall = false;
-        int lastChunkSize = chunkSize;
-        if (len % chunkSize != 0)
+        //pad signal if needed
+        int paddingNeeded = chunkSize - (signal.length % chunkSize);
+        Double[] wSig = new Double[signal.length + paddingNeeded];
+        for (int i = 0; i < wSig.length; i++)
         {
-            // last chunk is small
-            lastChunkSmall = true;
-            lastChunkSize = len % chunkSize;
+            wSig[i] = 0.0d;
         }
+
+
+        System.arraycopy(signal, 0, wSig, 0, signal.length);
+        int numChunks = wSig.length / chunkSize; //should always be an int because we padded the array
+        Double[] d = new Double[numChunks];
 
         for(int i = 0; i < numChunks; i++)
         {
             Double e = 0.0;
-            int numElemensInChunk = chunkSize;
-            if (i == (numChunks-1) && lastChunkSmall)
+            for(int j = 0; j < chunkSize; j++)
             {
-                numElemensInChunk = lastChunkSize;
-            }
-            for(int j = 0; j < numElemensInChunk; j++)
-            {
-                double temp = signal[i * chunkSize + j];
+                double temp = wSig[i * chunkSize + j];
                 e += Math.pow(Math.abs(temp), 2);
             }
             d[i] = e;
