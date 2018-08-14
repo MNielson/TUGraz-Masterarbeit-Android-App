@@ -40,7 +40,7 @@ public class Signal {
         //pad signal if needed
         int paddingNeeded = chunkSize - (signal.length % chunkSize);
         Double[] wSig = new Double[signal.length + paddingNeeded];
-        for (int i = 0; i < wSig.length; i++)
+        for (int i = signal.length-1; i < wSig.length; i++)
         {
             wSig[i] = 0.0d;
         }

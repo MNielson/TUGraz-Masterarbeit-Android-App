@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 
 import uk.me.berndporr.iirj.Butterworth;
@@ -56,6 +57,8 @@ public class MainActivity extends AppCompatActivity {
     final int FL = 50;
     final int FH = 50;
     private Butterworth mBandpass;
+    private Filterbank mFilterbank;
+    private Butterworth[] filters;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +77,8 @@ public class MainActivity extends AppCompatActivity {
         mBandpass = new Butterworth();
         mBandpass.bandPass(2, SAMPLE_RATE, (FH - FL) / 2, FH - FL);
 
-        Filterbank mFilterbank = new Filterbank(SAMPLE_RATE);
+        /*
+        mFilterbank = new Filterbank(SAMPLE_RATE);
         mFilterbank.addFilter(2,  240, 120 );
         mFilterbank.addFilter(2,  360, 120 );
         mFilterbank.addFilter(2,  480, 120 );
@@ -95,6 +99,68 @@ public class MainActivity extends AppCompatActivity {
         mFilterbank.addFilter(2, 3300, 300 );
         mFilterbank.addFilter(2, 3750, 500 );
         mSyllableDetector = new SyllableDetector(mFilterbank);
+        */
+
+        Butterworth b1 = new Butterworth();
+        Butterworth b2 = new Butterworth();
+        Butterworth b3 = new Butterworth();
+        Butterworth b4 = new Butterworth();
+        Butterworth b5 = new Butterworth();
+        Butterworth b6 = new Butterworth();
+        Butterworth b7 = new Butterworth();
+        Butterworth b8 = new Butterworth();
+        Butterworth b9 = new Butterworth();
+        Butterworth b10 = new Butterworth();
+        Butterworth b11 = new Butterworth();
+        Butterworth b12 = new Butterworth();
+        Butterworth b13 = new Butterworth();
+        Butterworth b14 = new Butterworth();
+        Butterworth b15 = new Butterworth();
+        Butterworth b16 = new Butterworth();
+        Butterworth b17 = new Butterworth();
+        Butterworth b18 = new Butterworth();
+        Butterworth b19 = new Butterworth();
+
+
+        b1.bandPass(2, SAMPLE_RATE, 240, 120);
+        b2.bandPass(2, SAMPLE_RATE, 360, 120);
+        b3.bandPass(2, SAMPLE_RATE, 480, 120);
+        b4.bandPass(2, SAMPLE_RATE, 600, 120);
+        b5.bandPass(2, SAMPLE_RATE, 720, 120);
+        b6.bandPass(2, SAMPLE_RATE, 840, 120);
+        b7.bandPass(2, SAMPLE_RATE, 1000, 150);
+        b8.bandPass(2, SAMPLE_RATE, 1150, 150);
+        b9.bandPass(2, SAMPLE_RATE, 1300, 150);
+        b10.bandPass(2, SAMPLE_RATE, 1450, 150);
+        b11.bandPass(2, SAMPLE_RATE, 1600, 150);
+        b12.bandPass(2, SAMPLE_RATE, 1800, 200);
+        b13.bandPass(2, SAMPLE_RATE, 2000, 200);
+        b14.bandPass(2, SAMPLE_RATE, 2200, 200);
+        b15.bandPass(2, SAMPLE_RATE, 2400, 200);
+        b16.bandPass(2, SAMPLE_RATE, 2700, 300);
+        b17.bandPass(2, SAMPLE_RATE, 3000, 300);
+        b18.bandPass(2, SAMPLE_RATE, 3300, 300);
+        b19.bandPass(2, SAMPLE_RATE, 3750, 500);
+
+        filters[1] = b1;
+        filters[2] = b2;
+        filters[3] = b3;
+        filters[4] = b4;
+        filters[5] = b5;
+        filters[6] = b6;
+        filters[7] = b7;
+        filters[8] = b8;
+        filters[9] = b9;
+        filters[10] = b10;
+        filters[11] = b11;
+        filters[12] = b12;
+        filters[13] = b13;
+        filters[14] = b14;
+        filters[15] = b15;
+        filters[16] = b16;
+        filters[17] = b17;
+        filters[18] = b18;
+        filters[19] = b19;
 
         GraphView graph = findViewById(R.id.graph);
         mSeries = new LineGraphSeries<>();
@@ -127,7 +193,7 @@ public class MainActivity extends AppCompatActivity {
 
     //onclick button
     public void analyseFile(View view){
-        LinkedList<Double> pitches = mAudioFileReader.readPitchFromAudioFile();
+        //LinkedList<Double> pitches = mAudioFileReader.readPitchFromAudioFile();
         //TextView tv = findViewById(R.id.text_results);
         //tv.setText(HelperFunctions.generateTextResults(pitches));
         Intent intent_upload = new Intent();
@@ -149,11 +215,131 @@ public class MainActivity extends AppCompatActivity {
                     InputStream is = getContentResolver().openInputStream(uri);
                     byte[] content = convertStreamToByteArray(is);
                     int byte_len = content.length;
-                    Double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
+                    double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
                     int double_len = d.length;
+
+                    // filter content
+                    double[][] filteredResults = new double[19][d.length];
+                    double t = 0.0;
+                    for(int i = 0; i < d.length; i++)
+                    {
+                        t = d[i];
+                        for(int j = 0; j < filters.length; j++)
+                        {
+                            filteredResults[j][i] = filters[j].filter(t);
+                        }
+
+                    }
+
+                    //pad signal if needed
+                    int chunkSize = SAMPLE_RATE / 10;
+                    int paddingNeeded = chunkSize - (d.length % chunkSize);
+                    int paddedLength = d.length+paddingNeeded;
+                    double[][] filteredResultsWithPadding = new double[19][paddedLength];
+
+                    for(int j = 0; j < filters.length; j++)
+                    {
+                        for (int i = 0; i < (paddedLength); i++)
+                        {
+                            if(i < d.length) //add content
+                                filteredResultsWithPadding[j][i] = filteredResults[j][i];
+                            else//add padding
+                                filteredResultsWithPadding[j][i] = 0.0d;
+                        }
+                    }
+
+                    // compute energy in chunks
+
+                    int numChunks = paddedLength / chunkSize; //should always be an int because we padded the array
+                    double[][] energyVectors = new double[filters.length][numChunks];
+
+                    for(int k = 0; k < filters.length; k++)
+                    {
+                        for (int i = 0; i < numChunks; i++)
+                        {
+                            Double e = 0.0;
+                            for (int j = 0; j < chunkSize; j++)
+                            {
+                                double temp = filteredResultsWithPadding[k][i * chunkSize + j];
+                                e += Math.pow(Math.abs(temp), 2);
+                            }
+                            energyVectors[k][i] = e;
+                        }
+                    }
+
+
+                    // compute trajectory
+                    double[] trajectoryValues = new double[numChunks];
+
+                    int N = filters.length;
+                    double M = N * (N-1) * 0.5;
+                    for(int k = 0; k < trajectoryValues.length; k++)
+                    {
+                        Double foo = 0.0;
+                        for (int i = 0; i < N-2; i++)
+                        {
+                            for (int j = i+1; j < N-1; j++)
+                            {
+                                foo += energyVectors[i][k] * energyVectors[j][k];
+                            }
+                        }
+                        trajectoryValues[k] = foo / M;
+                    }
+
+                    //detect peaks
+
+                    double delta = 0.5;
+
+                    List<Double> maxima = new ArrayList<>();
+                    List<Double> minima = new ArrayList<>();
+
+                    Double maximum = null;
+                    Double minimum = null;
+
+                    boolean lookForMax = true;
+
+
+
+                    for (double trajectoryValue : trajectoryValues) {
+                        if (maximum == null || trajectoryValue > maximum) {
+                            maximum = trajectoryValue;
+                        }
+
+                        if (minimum == null || trajectoryValue < minimum) {
+                            minimum = trajectoryValue;
+                        }
+
+                        if (lookForMax) {
+                            if (trajectoryValue < maximum - delta) {
+                                maxima.add(trajectoryValue);
+                                minimum = trajectoryValue;
+                                lookForMax = false;
+                            }
+                        } else {
+                            if (trajectoryValue > minimum + delta) {
+                                minima.add(trajectoryValue);
+                                maximum = trajectoryValue;
+                                lookForMax = true;
+                            }
+                        }
+                    }
+
+                    int numPeaks = maxima.size();
+                    Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
+
+
+
+                    /*
                     Signal s = new Signal(d);
-                    int numSyllables = mSyllableDetector.countSyllables(s);
+                    Signal foo = mSyllableDetector.countSyllables(s);
+
                     Log.d("foo", "bar");
+                    for(int i = 0; i < foo.getSignal().length; i++)
+                    {
+                        mSeries.appendData(new DataPoint(i, foo.getSignal()[i]), true, foo.getSignal().length);
+                    }
+                    */
+
 
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();

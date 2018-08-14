@@ -105,7 +105,7 @@ public class SyllableDetector {
 
     }
 
-    public int countSyllables(Signal sig)
+    public Signal countSyllables(Signal sig)
     {
         ArrayList<Signal> filteredSignals = mFilterbank.filter(sig);
         ArrayList<Signal> energySigs = new ArrayList<>();
@@ -115,6 +115,6 @@ public class SyllableDetector {
         }
         Signal trajectory = computeTrajectory(energySigs);
         int numPeaks = countPeaks(trajectory);
-        return numPeaks;
+        return trajectory;
     }
 }
