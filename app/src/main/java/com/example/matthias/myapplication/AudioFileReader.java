@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.LinkedList;
 
 /**
@@ -43,7 +44,9 @@ public class AudioFileReader {
         short[] shorts = new short[bytes.length/2];
         // to turn bytes to shorts as either big endian or little endian.
         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(shorts);
-        LinkedList<Double> pitches = mAudioWorker.computePitches(HelperFunctions.convertShortToDouble(shorts));
+        // TODO: fix
+        //LinkedList<Double> pitches = mAudioWorker.computePitches(HelperFunctions.convertShortToDouble(shorts));
+        LinkedList<Double> pitches = new LinkedList<>();
         return pitches;
     }
 

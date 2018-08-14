@@ -12,7 +12,7 @@ import java.util.LinkedList;
 
 public class HelperFunctions {
 
-    static Double[] convertByteToDoubleViaShort(byte[] byteArray){
+    static double[] convertByteToDoubleViaShort(byte[] byteArray){
         return convertShortToDouble(convertByteToShort(byteArray));
     }
 
@@ -24,9 +24,9 @@ public class HelperFunctions {
         return doubleArray;
     }
 
-    static Double[] convertShortToDouble(short[] shortArray){
+    static double[] convertShortToDouble(short[] shortArray){
         int size = shortArray.length;
-        Double[] doubleArray = new Double[size];
+        double[] doubleArray = new double[size];
         for (int index = 0; index < size; index++)
             doubleArray[index] = (double) shortArray[index];
         return doubleArray;
