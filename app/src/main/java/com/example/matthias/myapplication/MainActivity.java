@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     final int FH = 50;
     private Butterworth mBandpass;
     private Filterbank mFilterbank;
-    private Butterworth[] filters;
+    private Butterworth[] filters = new Butterworth[19];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -142,25 +142,25 @@ public class MainActivity extends AppCompatActivity {
         b18.bandPass(2, SAMPLE_RATE, 3300, 300);
         b19.bandPass(2, SAMPLE_RATE, 3750, 500);
 
-        filters[1] = b1;
-        filters[2] = b2;
-        filters[3] = b3;
-        filters[4] = b4;
-        filters[5] = b5;
-        filters[6] = b6;
-        filters[7] = b7;
-        filters[8] = b8;
-        filters[9] = b9;
-        filters[10] = b10;
-        filters[11] = b11;
-        filters[12] = b12;
-        filters[13] = b13;
-        filters[14] = b14;
-        filters[15] = b15;
-        filters[16] = b16;
-        filters[17] = b17;
-        filters[18] = b18;
-        filters[19] = b19;
+        filters[1 -1] = b1;
+        filters[2 -1] = b2;
+        filters[3 -1] = b3;
+        filters[4 -1] = b4;
+        filters[5 -1] = b5;
+        filters[6 -1] = b6;
+        filters[7 -1] = b7;
+        filters[8 -1] = b8;
+        filters[9 -1] = b9;
+        filters[10-1] = b10;
+        filters[11-1] = b11;
+        filters[12-1] = b12;
+        filters[13-1] = b13;
+        filters[14-1] = b14;
+        filters[15-1] = b15;
+        filters[16-1] = b16;
+        filters[17-1] = b17;
+        filters[18-1] = b18;
+        filters[19-1] = b19;
 
         GraphView graph = findViewById(R.id.graph);
         mSeries = new LineGraphSeries<>();
@@ -197,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
         //TextView tv = findViewById(R.id.text_results);
         //tv.setText(HelperFunctions.generateTextResults(pitches));
         Intent intent_upload = new Intent();
-        intent_upload.setType("application/*");
+        intent_upload.setType("audio/*");
         intent_upload.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent_upload,1);
 
@@ -211,141 +211,150 @@ public class MainActivity extends AppCompatActivity {
 
                 //the selected audio.
                 Uri uri = data.getData();
+                InputStream is = null;
                 try {
-                    InputStream is = getContentResolver().openInputStream(uri);
-                    byte[] content = convertStreamToByteArray(is);
-                    int byte_len = content.length;
-                    double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
-                    int double_len = d.length;
-
-                    // filter content
-                    double[][] filteredResults = new double[19][d.length];
-                    double t = 0.0;
-                    for(int i = 0; i < d.length; i++)
-                    {
-                        t = d[i];
-                        for(int j = 0; j < filters.length; j++)
-                        {
-                            filteredResults[j][i] = filters[j].filter(t);
-                        }
-
-                    }
-
-                    //pad signal if needed
-                    int chunkSize = SAMPLE_RATE / 10;
-                    int paddingNeeded = chunkSize - (d.length % chunkSize);
-                    int paddedLength = d.length+paddingNeeded;
-                    double[][] filteredResultsWithPadding = new double[19][paddedLength];
-
-                    for(int j = 0; j < filters.length; j++)
-                    {
-                        for (int i = 0; i < (paddedLength); i++)
-                        {
-                            if(i < d.length) //add content
-                                filteredResultsWithPadding[j][i] = filteredResults[j][i];
-                            else//add padding
-                                filteredResultsWithPadding[j][i] = 0.0d;
-                        }
-                    }
-
-                    // compute energy in chunks
-
-                    int numChunks = paddedLength / chunkSize; //should always be an int because we padded the array
-                    double[][] energyVectors = new double[filters.length][numChunks];
-
-                    for(int k = 0; k < filters.length; k++)
-                    {
-                        for (int i = 0; i < numChunks; i++)
-                        {
-                            Double e = 0.0;
-                            for (int j = 0; j < chunkSize; j++)
-                            {
-                                double temp = filteredResultsWithPadding[k][i * chunkSize + j];
-                                e += Math.pow(Math.abs(temp), 2);
-                            }
-                            energyVectors[k][i] = e;
-                        }
-                    }
-
-
-                    // compute trajectory
-                    double[] trajectoryValues = new double[numChunks];
-
-                    int N = filters.length;
-                    double M = N * (N-1) * 0.5;
-                    for(int k = 0; k < trajectoryValues.length; k++)
-                    {
-                        Double foo = 0.0;
-                        for (int i = 0; i < N-2; i++)
-                        {
-                            for (int j = i+1; j < N-1; j++)
-                            {
-                                foo += energyVectors[i][k] * energyVectors[j][k];
-                            }
-                        }
-                        trajectoryValues[k] = foo / M;
-                    }
-
-                    //detect peaks
-
-                    double delta = 0.5;
-
-                    List<Double> maxima = new ArrayList<>();
-                    List<Double> minima = new ArrayList<>();
-
-                    Double maximum = null;
-                    Double minimum = null;
-
-                    boolean lookForMax = true;
-
-
-
-                    for (double trajectoryValue : trajectoryValues) {
-                        if (maximum == null || trajectoryValue > maximum) {
-                            maximum = trajectoryValue;
-                        }
-
-                        if (minimum == null || trajectoryValue < minimum) {
-                            minimum = trajectoryValue;
-                        }
-
-                        if (lookForMax) {
-                            if (trajectoryValue < maximum - delta) {
-                                maxima.add(trajectoryValue);
-                                minimum = trajectoryValue;
-                                lookForMax = false;
-                            }
-                        } else {
-                            if (trajectoryValue > minimum + delta) {
-                                minima.add(trajectoryValue);
-                                maximum = trajectoryValue;
-                                lookForMax = true;
-                            }
-                        }
-                    }
-
-                    int numPeaks = maxima.size();
-                    Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
-
-
-
-                    /*
-                    Signal s = new Signal(d);
-                    Signal foo = mSyllableDetector.countSyllables(s);
-
-                    Log.d("foo", "bar");
-                    for(int i = 0; i < foo.getSignal().length; i++)
-                    {
-                        mSeries.appendData(new DataPoint(i, foo.getSignal()[i]), true, foo.getSignal().length);
-                    }
-                    */
-
-
+                    is = getContentResolver().openInputStream(uri);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
+                }
+                byte[] content = new byte[0];
+                try {
+                    content = convertStreamToByteArray(is);
+                    is.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+
+                int byte_len = content.length;
+                double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
+                int double_len = d.length;
+
+                // filter content
+                double[][] filteredResults = new double[19][d.length];
+                double t = 0.0;
+                for(int i = 0; i < d.length; i++)
+                {
+                    t = d[i];
+                    for(int j = 0; j < filters.length; j++)
+                    {
+                        filteredResults[j][i] = filters[j].filter(t);
+                    }
+
+                }
+
+                //pad signal if needed
+
+                int chunkSize = SAMPLE_RATE / 10;
+                int paddingNeeded = chunkSize - (d.length % chunkSize);
+                int paddedLength = d.length+paddingNeeded;
+                double[][] filteredResultsWithPadding = new double[19][paddedLength];
+
+                for(int j = 0; j < filters.length; j++)
+                {
+                    for (int i = 0; i < (paddedLength); i++)
+                    {
+                        if(i < d.length) //add content
+                            filteredResultsWithPadding[j][i] = filteredResults[j][i];
+                        else//add padding
+                            filteredResultsWithPadding[j][i] = 0.0d;
+                    }
+                }
+
+                // compute energy in chunks
+
+                int numChunks = paddedLength / chunkSize; //should always be an int because we padded the array
+                double[][] energyVectors = new double[filters.length][numChunks];
+                double temp = 0.0d;
+                double e = 0.0d;
+                for(int k = 0; k < filters.length; k++)
+                {
+                    for (int i = 0; i < numChunks; i++)
+                    {
+                        e = 0.0d;
+                        for (int j = 0; j < chunkSize; j++)
+                        {
+                            temp = filteredResultsWithPadding[k][i * chunkSize + j];
+                            e += Math.pow(temp, 2);
+                        }
+                        energyVectors[k][i] = e;
+                    }
+                }
+
+
+                // compute trajectory
+                double[] trajectoryValues = new double[numChunks];
+
+                int N = filters.length;
+                double M = N * (N-1) * 0.5;
+                for(int k = 0; k < trajectoryValues.length; k++)
+                {
+                    Double foo = 0.0;
+                    for (int i = 0; i < N-2; i++)
+                    {
+                        for (int j = i+1; j < N-1; j++)
+                        {
+                            foo += energyVectors[i][k] * energyVectors[j][k];
+                        }
+                    }
+                    trajectoryValues[k] = foo / M;
+                }
+
+                //detect peaks
+
+                double delta = 0.5;
+
+                List<Double> maxima = new ArrayList<>();
+                List<Double> minima = new ArrayList<>();
+
+                Double maximum = null;
+                Double minimum = null;
+
+                boolean lookForMax = true;
+
+
+
+                for (double trajectoryValue : trajectoryValues) {
+                    if (maximum == null || trajectoryValue > maximum) {
+                        maximum = trajectoryValue;
+                    }
+
+                    if (minimum == null || trajectoryValue < minimum) {
+                        minimum = trajectoryValue;
+                    }
+
+                    if (lookForMax) {
+                        if (trajectoryValue < maximum - delta) {
+                            maxima.add(trajectoryValue);
+                            minimum = trajectoryValue;
+                            lookForMax = false;
+                        }
+                    } else {
+                        if (trajectoryValue > minimum + delta) {
+                            minima.add(trajectoryValue);
+                            maximum = trajectoryValue;
+                            lookForMax = true;
+                        }
+                    }
+                }
+
+                int numPeaks = maxima.size();
+                Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
+
+
+
+                /*
+                Signal s = new Signal(d);
+                Signal foo = mSyllableDetector.countSyllables(s);
+
+                Log.d("foo", "bar");
+                for(int i = 0; i < foo.getSignal().length; i++)
+                {
+                    mSeries.appendData(new DataPoint(i, foo.getSignal()[i]), true, foo.getSignal().length);
+                }
+                */
+
+
+
 
             }
         }
