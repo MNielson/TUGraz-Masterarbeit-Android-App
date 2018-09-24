@@ -236,7 +236,8 @@ public class MainActivity extends AppCompatActivity {
 
                     while(dis.available() > 0)
                     {
-                        content2.add(dis.readShort());
+                        //reverse byte order in wav
+                        content2.add(Short.reverseBytes(dis.readShort()));
                     }
 
                     content = IOUtils.toByteArray(is); //includes wav header (size 40 bytes?)
@@ -288,16 +289,17 @@ public class MainActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
 
+                /*
                 int byte_len = content.length;
                 double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
                 int double_len = d.length;
-
+                */
                 // filter content
-                double[][] filteredResults = new double[19][d.length];
+                double[][] filteredResults = new double[19][content2.size()];
                 double t = 0.0;
-                for(int i = 0; i < d.length; i++)
+                for(int i = 0; i < content2.size(); i++)
                 {
-                    t = d[i];
+                    t = content2.get(i).doubleValue();
                     for(int j = 0; j < filters.length; j++)
                     {
                         filteredResults[j][i] = filters[j].filter(t);
@@ -308,15 +310,15 @@ public class MainActivity extends AppCompatActivity {
                 //pad signal if needed
 
                 int chunkSize = SAMPLE_RATE / 10;
-                int paddingNeeded = chunkSize - (d.length % chunkSize);
-                int paddedLength = d.length+paddingNeeded;
+                int paddingNeeded = chunkSize - (content2.size() % chunkSize);
+                int paddedLength = content2.size()+paddingNeeded;
                 double[][] filteredResultsWithPadding = new double[19][paddedLength];
 
                 for(int j = 0; j < filters.length; j++)
                 {
                     for (int i = 0; i < (paddedLength); i++)
                     {
-                        if(i < d.length) //add content
+                        if(i < content2.size()) //add content
                             filteredResultsWithPadding[j][i] = filteredResults[j][i];
                         else//add padding
                             filteredResultsWithPadding[j][i] = 0.0d;
