@@ -1,6 +1,7 @@
 package com.example.matthias.myapplication;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
@@ -14,6 +15,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.res.TypedArrayUtils;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -22,12 +24,18 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -162,6 +170,8 @@ public class MainActivity extends AppCompatActivity {
         filters[18-1] = b18;
         filters[19-1] = b19;
 
+
+
         GraphView graph = findViewById(R.id.graph);
         mSeries = new LineGraphSeries<>();
         graph.addSeries(mSeries);
@@ -217,9 +227,62 @@ public class MainActivity extends AppCompatActivity {
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
+                byte[] tcontent = new byte[0];
                 byte[] content = new byte[0];
+                ArrayList<Short> content2 = new ArrayList<>();
                 try {
-                    content = convertStreamToByteArray(is);
+                    //content = convertStreamToByteArray(is);
+                    DataInputStream dis = new DataInputStream(is);
+
+                    while(dis.available() > 0)
+                    {
+                        content2.add(dis.readShort());
+                    }
+
+                    content = IOUtils.toByteArray(is); //includes wav header (size 40 bytes?)
+
+                    //content = Arrays.copyOfRange(tcontent, 40, tcontent.length);
+
+
+
+                    File sdCard = Environment.getExternalStorageDirectory();
+                    File dir = new File (sdCard.getAbsolutePath() + "/dir1");
+                    File file = new File(dir, "shorts");
+
+                    if(!file.getParentFile().exists())
+                        if(!file.getParentFile().mkdirs())
+                            Log.e("FOO", "Failed to create directory");
+
+                    if(!file.exists())
+                        if(!file.createNewFile())
+                            Log.e("FOO", "Failed to create file");
+/*
+                    double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
+                    try {
+                        FileOutputStream outputStream = new FileOutputStream(file);
+                        OutputStreamWriter os = new OutputStreamWriter(outputStream);
+                        for (double du : d) {
+                            os.write(String.valueOf(du) + "\n");
+                        }
+                        outputStream.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+*/
+
+                    try {
+                        FileOutputStream outputStream = new FileOutputStream(file);
+                        OutputStreamWriter os = new OutputStreamWriter(outputStream);
+                        for (Short s : content2) {
+                            os.write(String.valueOf(s) + "\n");
+                        }
+                        outputStream.close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+
+
                     is.close();
                 } catch (IOException e) {
                     e.printStackTrace();

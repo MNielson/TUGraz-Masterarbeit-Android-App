@@ -47,6 +47,7 @@ public class HelperFunctions {
             short[] shortArray = new short[shortArrayLen];
             for(int i = 0; i < shortArrayLen; i++)
             {
+                //
                 shortArray[i] = (short)((byteArrray[i*2]<<8) | (byteArrray[i*2+1]));
             }
             return shortArray;
