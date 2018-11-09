@@ -16,7 +16,6 @@ import android.os.Message;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.provider.DocumentFile;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -29,6 +28,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private PitchDetector mPitchDetector;
     private SyllableDetector mSyllableDetector;
 
-    private ArrayList<Integer> syllablesInFile = new ArrayList<>();
+    private ArrayList<AnalyzedFile> analyzedFiles = new ArrayList<>();
 
     private ArrayList<short[]> audioBuffers = new ArrayList<>();
 
@@ -200,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
     //onclick button
     public void analyseFilesInFolder(View view){
         // doesn't work on all phones...
-        // works on emulated Pixel 2XL
+        // works on emulated Pixel 2XL & Nexus 5X
         // doesn't work on real Galaxy S6
         Intent intent = new Intent();
         intent.setType("audio/*");
@@ -234,7 +234,7 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                     int numPeaks = getNumPeaks(is);
-                    syllablesInFile.add(numPeaks);
+                    analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
                     Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
                     break;
                 }
@@ -252,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
                             e.printStackTrace();
                         }
                         int numPeaks = getNumPeaks(is);
-                        syllablesInFile.add(numPeaks);
+                        analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
 
                         currentItem = currentItem + 1;
 
@@ -266,9 +266,30 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
                     int numPeaks = getNumPeaks(is);
-                    syllablesInFile.add(numPeaks);
+                    analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
                     //do something with the file (save it to some directory or whatever you need to do with it here)
                 }
+
+                if(isExternalStorageWritable())
+                {
+                    String dirName = "someDir";
+                    // Get the directory for the user's public Downloads directory.
+                    File file = new File(Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_DOWNLOADS), dirName);
+                    if (!file.mkdirs()) {
+                        Log.e(LOG_TAG, "Directory not created");
+                    }
+                    try {
+                        FileOutputStream fOut = new FileOutputStream(file);
+                        JsonDataWriter.write(fOut, analyzedFiles);
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                else
+                    Log.e(LOG_TAG, "Can't write to external storage");
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
