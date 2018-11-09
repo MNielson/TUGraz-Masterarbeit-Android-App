@@ -1,21 +1,22 @@
 package com.example.matthias.myapplication;
 
 import android.Manifest;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.res.TypedArrayUtils;
+import android.support.v4.provider.DocumentFile;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -24,27 +25,24 @@ import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
-import org.apache.commons.io.IOUtils;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Random;
 
 import uk.me.berndporr.iirj.Butterworth;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Used to load the 'native-lib' library on application startup.
+    //////////////////
+    //REQUEST CODES //
+    /////////////////
+    private static final int SINGLE_FILE      = 1;
+    private static final int MULTIPLE_FILES = 3;
 
     final int SAMPLE_RATE = 44100; // 16k for speech. 44.1k for music.
     final String LOG_TAG = "Audio-Recording";
@@ -55,6 +53,8 @@ public class MainActivity extends AppCompatActivity {
     private AudioFileReader mAudioFileReader;
     private PitchDetector mPitchDetector;
     private SyllableDetector mSyllableDetector;
+
+    private ArrayList<Integer> syllablesInFile = new ArrayList<>();
 
     private ArrayList<short[]> audioBuffers = new ArrayList<>();
 
@@ -129,7 +129,6 @@ public class MainActivity extends AppCompatActivity {
         Butterworth b18 = new Butterworth();
         Butterworth b19 = new Butterworth();
 
-
         b1.bandPass(2, SAMPLE_RATE, 240, 120);
         b2.bandPass(2, SAMPLE_RATE, 360, 120);
         b3.bandPass(2, SAMPLE_RATE, 480, 120);
@@ -170,8 +169,6 @@ public class MainActivity extends AppCompatActivity {
         filters[18-1] = b18;
         filters[19-1] = b19;
 
-
-
         GraphView graph = findViewById(R.id.graph);
         mSeries = new LineGraphSeries<>();
         graph.addSeries(mSeries);
@@ -180,7 +177,6 @@ public class MainActivity extends AppCompatActivity {
         graph.getViewport().setMinX(0);
         graph.getViewport().setMaxX(40);
         graph.getGridLabelRenderer().setTextSize(20.0f);
-
 
         mHandler = new Handler(Looper.getMainLooper()) {
             /*
@@ -202,6 +198,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //onclick button
+    public void analyseFilesInFolder(View view){
+        Intent intent = new Intent();
+        intent.setType("audio/*");
+        intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select Files"), MULTIPLE_FILES);
+    }
+
+    //onclick button
     public void analyseFile(View view){
         //LinkedList<Double> pitches = mAudioFileReader.readPitchFromAudioFile();
         //TextView tv = findViewById(R.id.text_results);
@@ -209,223 +214,190 @@ public class MainActivity extends AppCompatActivity {
         Intent intent_upload = new Intent();
         intent_upload.setType("audio/*");
         intent_upload.setAction(Intent.ACTION_GET_CONTENT);
-        startActivityForResult(intent_upload,1);
-
+        startActivityForResult(intent_upload,SINGLE_FILE);
     }
+    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     @Override
     protected void onActivityResult(int requestCode,int resultCode,Intent data){
-
-        if(requestCode == 1){
-
-            if(resultCode == RESULT_OK){
-
-                //the selected audio.
-                Uri uri = data.getData();
-                InputStream is = null;
-                try {
-                    is = getContentResolver().openInputStream(uri);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                byte[] tcontent = new byte[0];
-                byte[] content = new byte[0];
-                ArrayList<Short> content2 = new ArrayList<>();
-                try {
-                    //content = convertStreamToByteArray(is);
-                    DataInputStream dis = new DataInputStream(is);
-
-                    while(dis.available() > 0)
-                    {
-                        //reverse byte order in wav
-                        content2.add(Short.reverseBytes(dis.readShort()));
-                    }
-
-                    content = IOUtils.toByteArray(is); //includes wav header (size 40 bytes?)
-
-                    //content = Arrays.copyOfRange(tcontent, 40, tcontent.length);
-
-
-
-                    File sdCard = Environment.getExternalStorageDirectory();
-                    File dir = new File (sdCard.getAbsolutePath() + "/dir1");
-                    File file = new File(dir, "shorts");
-
-                    if(!file.getParentFile().exists())
-                        if(!file.getParentFile().mkdirs())
-                            Log.e("FOO", "Failed to create directory");
-
-                    if(!file.exists())
-                        if(!file.createNewFile())
-                            Log.e("FOO", "Failed to create file");
-/*
-                    double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
+        switch(requestCode){
+            case(SINGLE_FILE):
+                if(resultCode == RESULT_OK){
+                    //the selected audio.
+                    Uri uri = data.getData();
+                    InputStream is = null;
                     try {
-                        FileOutputStream outputStream = new FileOutputStream(file);
-                        OutputStreamWriter os = new OutputStreamWriter(outputStream);
-                        for (double du : d) {
-                            os.write(String.valueOf(du) + "\n");
-                        }
-                        outputStream.close();
-                    } catch (Exception e) {
+                        is = getContentResolver().openInputStream(uri);
+                    } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     }
-*/
-
-                    try {
-                        FileOutputStream outputStream = new FileOutputStream(file);
-                        OutputStreamWriter os = new OutputStreamWriter(outputStream);
-                        for (Short s : content2) {
-                            os.write(String.valueOf(s) + "\n");
+                    int numPeaks = getNumPeaks(is);
+                    syllablesInFile.add(numPeaks);
+                    Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
+                    break;
+                }
+            case(MULTIPLE_FILES):
+                if(data.getClipData() != null) {
+                    int count = data.getClipData().getItemCount();
+                    int currentItem = 0;
+                    while(currentItem < count) {
+                        Uri uri = data.getClipData().getItemAt(currentItem).getUri();
+                        //do something with the file (save it to some directory or whatever you need to do with it here)
+                        InputStream is = null;
+                        try {
+                            is = getContentResolver().openInputStream(uri);
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
                         }
-                        outputStream.close();
-                    } catch (Exception e) {
+                        int numPeaks = getNumPeaks(is);
+                        syllablesInFile.add(numPeaks);
+
+                        currentItem = currentItem + 1;
+
+                    }
+                } else if(data.getData() != null) {
+                    Uri uri = data.getData();
+                    InputStream is = null;
+                    try {
+                        is = getContentResolver().openInputStream(uri);
+                    } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     }
-
-
-
-                    is.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    int numPeaks = getNumPeaks(is);
+                    syllablesInFile.add(numPeaks);
+                    //do something with the file (save it to some directory or whatever you need to do with it here)
                 }
-
-                /*
-                int byte_len = content.length;
-                double[] d = HelperFunctions.convertByteToDoubleViaShort(content);
-                int double_len = d.length;
-                */
-                // filter content
-                double[][] filteredResults = new double[19][content2.size()];
-                double t = 0.0;
-                for(int i = 0; i < content2.size(); i++)
-                {
-                    t = content2.get(i).doubleValue();
-                    for(int j = 0; j < filters.length; j++)
-                    {
-                        filteredResults[j][i] = filters[j].filter(t);
-                    }
-
-                }
-
-                //pad signal if needed
-
-                int chunkSize = SAMPLE_RATE / 10;
-                int paddingNeeded = chunkSize - (content2.size() % chunkSize);
-                int paddedLength = content2.size()+paddingNeeded;
-                double[][] filteredResultsWithPadding = new double[19][paddedLength];
-
-                for(int j = 0; j < filters.length; j++)
-                {
-                    for (int i = 0; i < (paddedLength); i++)
-                    {
-                        if(i < content2.size()) //add content
-                            filteredResultsWithPadding[j][i] = filteredResults[j][i];
-                        else//add padding
-                            filteredResultsWithPadding[j][i] = 0.0d;
-                    }
-                }
-
-                // compute energy in chunks
-
-                int numChunks = paddedLength / chunkSize; //should always be an int because we padded the array
-                double[][] energyVectors = new double[filters.length][numChunks];
-                double temp = 0.0d;
-                double e = 0.0d;
-                for(int k = 0; k < filters.length; k++)
-                {
-                    for (int i = 0; i < numChunks; i++)
-                    {
-                        e = 0.0d;
-                        for (int j = 0; j < chunkSize; j++)
-                        {
-                            temp = filteredResultsWithPadding[k][i * chunkSize + j];
-                            e += Math.pow(temp, 2);
-                        }
-                        energyVectors[k][i] = e;
-                    }
-                }
-
-
-                // compute trajectory
-                double[] trajectoryValues = new double[numChunks];
-
-                int N = filters.length;
-                double M = N * (N-1) * 0.5;
-                for(int k = 0; k < trajectoryValues.length; k++)
-                {
-                    Double foo = 0.0;
-                    for (int i = 0; i < N-2; i++)
-                    {
-                        for (int j = i+1; j < N-1; j++)
-                        {
-                            foo += energyVectors[i][k] * energyVectors[j][k];
-                        }
-                    }
-                    trajectoryValues[k] = foo / M;
-                }
-
-                //detect peaks
-
-                double delta = 0.5;
-
-                List<Double> maxima = new ArrayList<>();
-                List<Double> minima = new ArrayList<>();
-
-                Double maximum = null;
-                Double minimum = null;
-
-                boolean lookForMax = true;
-
-
-
-                for (double trajectoryValue : trajectoryValues) {
-                    if (maximum == null || trajectoryValue > maximum) {
-                        maximum = trajectoryValue;
-                    }
-
-                    if (minimum == null || trajectoryValue < minimum) {
-                        minimum = trajectoryValue;
-                    }
-
-                    if (lookForMax) {
-                        if (trajectoryValue < maximum - delta) {
-                            maxima.add(trajectoryValue);
-                            minimum = trajectoryValue;
-                            lookForMax = false;
-                        }
-                    } else {
-                        if (trajectoryValue > minimum + delta) {
-                            minima.add(trajectoryValue);
-                            maximum = trajectoryValue;
-                            lookForMax = true;
-                        }
-                    }
-                }
-
-                int numPeaks = maxima.size();
-                Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
-
-
-
-                /*
-                Signal s = new Signal(d);
-                Signal foo = mSyllableDetector.countSyllables(s);
-
-                Log.d("foo", "bar");
-                for(int i = 0; i < foo.getSignal().length; i++)
-                {
-                    mSeries.appendData(new DataPoint(i, foo.getSignal()[i]), true, foo.getSignal().length);
-                }
-                */
-
-
-
-
-            }
+                break;
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    private int getNumPeaks(InputStream is) {
+        ArrayList<Short> content = new ArrayList<>();
+        try {
+            DataInputStream dis = new DataInputStream(is);
+
+            while(dis.available() > 0)
+            {
+                //reverse byte order in wav
+                content.add(Short.reverseBytes(dis.readShort()));
+            }
+
+            is.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        // filter content
+        double[][] filteredResults = new double[19][content.size()];
+        double t = 0.0;
+        for(int i = 0; i < content.size(); i++)
+        {
+            t = content.get(i).doubleValue();
+            for(int j = 0; j < filters.length; j++)
+            {
+                filteredResults[j][i] = filters[j].filter(t);
+            }
+
+        }
+
+        //pad signal if needed
+
+        int chunkSize = SAMPLE_RATE / 10;
+        int paddingNeeded = chunkSize - (content.size() % chunkSize);
+        int paddedLength = content.size()+paddingNeeded;
+        double[][] filteredResultsWithPadding = new double[19][paddedLength];
+
+        for(int j = 0; j < filters.length; j++)
+        {
+            for (int i = 0; i < (paddedLength); i++)
+            {
+                if(i < content.size()) //add content
+                    filteredResultsWithPadding[j][i] = filteredResults[j][i];
+                else//add padding
+                    filteredResultsWithPadding[j][i] = 0.0d;
+            }
+        }
+
+        // compute energy in chunks
+
+        int numChunks = paddedLength / chunkSize; //should always be an int because we padded the array
+        double[][] energyVectors = new double[filters.length][numChunks];
+        double temp = 0.0d;
+        double e = 0.0d;
+        for(int k = 0; k < filters.length; k++)
+        {
+            for (int i = 0; i < numChunks; i++)
+            {
+                e = 0.0d;
+                for (int j = 0; j < chunkSize; j++)
+                {
+                    temp = filteredResultsWithPadding[k][i * chunkSize + j];
+                    e += Math.pow(temp, 2);
+                }
+                energyVectors[k][i] = e;
+            }
+        }
+
+
+        // compute trajectory
+        double[] trajectoryValues = new double[numChunks];
+
+        int N = filters.length;
+        double M = N * (N-1) * 0.5;
+        for(int k = 0; k < trajectoryValues.length; k++)
+        {
+            Double foo = 0.0;
+            for (int i = 0; i < N-2; i++)
+            {
+                for (int j = i+1; j < N-1; j++)
+                {
+                    foo += energyVectors[i][k] * energyVectors[j][k];
+                }
+            }
+            trajectoryValues[k] = foo / M;
+        }
+
+        //detect peaks
+
+        double delta = 0.5;
+
+        List<Double> maxima = new ArrayList<>();
+        List<Double> minima = new ArrayList<>();
+
+        Double maximum = null;
+        Double minimum = null;
+
+        boolean lookForMax = true;
+
+
+        for (double trajectoryValue : trajectoryValues) {
+            if (maximum == null || trajectoryValue > maximum) {
+                maximum = trajectoryValue;
+            }
+
+            if (minimum == null || trajectoryValue < minimum) {
+                minimum = trajectoryValue;
+            }
+
+            if (lookForMax) {
+                if (trajectoryValue < maximum - delta) {
+                    maxima.add(trajectoryValue);
+                    minimum = trajectoryValue;
+                    lookForMax = false;
+                }
+            } else {
+                if (trajectoryValue > minimum + delta) {
+                    minima.add(trajectoryValue);
+                    maximum = trajectoryValue;
+                    lookForMax = true;
+                }
+            }
+        }
+
+        int numPeaks = maxima.size();
+        return numPeaks;
+    }
 
     //onclick button
     public void onClickStartAudioRecording(View view) {
@@ -444,7 +416,6 @@ public class MainActivity extends AppCompatActivity {
         //int numPeaks = mSyllableDetector.countPeaks();
         //Log.d(LOG_TAG, "Detected " +numPeaks+ " peaks / syllables? in recorded audio.");
     }
-
 
     void recordAudio() throws IOException {
         /*
@@ -525,8 +496,6 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
-
-
     private void requestRecordAudioPermission() {
         //check API version, do nothing if API version < 23!
         int currentapiVersion = android.os.Build.VERSION.SDK_INT;
@@ -577,8 +546,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
-
     /* Checks if external storage is available for read and write */
     public boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
@@ -594,7 +561,6 @@ public class MainActivity extends AppCompatActivity {
 
     public File getPublicMusicStorageDir(String albumName) {
         // Get the directory for the user's public pictures directory.
-
         File file = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_MUSIC), albumName);
         if (!file.mkdirs()) {
@@ -610,8 +576,6 @@ public class MainActivity extends AppCompatActivity {
         while ((i = is.read(buff, 0, buff.length)) > 0) {
             baos.write(buff, 0, i);
         }
-
         return baos.toByteArray(); // be sure to close InputStream in calling function
     }
-
 }

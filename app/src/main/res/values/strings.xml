@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Quantle for Android</string>
     <string name="button_fromFile">Analyse File</string>
+    <string name="button_fromFolder">Analyse Folder</string>
     <string name="button_recordStart">Start Recording</string>
     <string name="button_recordStop">Stop Recording</string>
     <string name="button_analyseRecording">Analyse Recording</string>
