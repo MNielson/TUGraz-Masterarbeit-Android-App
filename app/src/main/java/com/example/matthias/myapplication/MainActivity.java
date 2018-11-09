@@ -199,6 +199,9 @@ public class MainActivity extends AppCompatActivity {
 
     //onclick button
     public void analyseFilesInFolder(View view){
+        // doesn't work on all phones...
+        // works on emulated Pixel 2XL
+        // doesn't work on real Galaxy S6
         Intent intent = new Intent();
         intent.setType("audio/*");
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
