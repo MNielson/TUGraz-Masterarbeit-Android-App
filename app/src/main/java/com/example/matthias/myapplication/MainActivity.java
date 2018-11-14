@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -214,10 +215,12 @@ public class MainActivity extends AppCompatActivity {
         //LinkedList<Double> pitches = mAudioFileReader.readPitchFromAudioFile();
         //TextView tv = findViewById(R.id.text_results);
         //tv.setText(HelperFunctions.generateTextResults(pitches));
+
         Intent intent_upload = new Intent();
         intent_upload.setType("audio/*");
         intent_upload.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(intent_upload,SINGLE_FILE);
+        return;
     }
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
     @Override
@@ -227,46 +230,60 @@ public class MainActivity extends AppCompatActivity {
                 if(resultCode == RESULT_OK){
                     //the selected audio.
                     Uri uri = data.getData();
-                    InputStream is = null;
                     try {
-                        is = getContentResolver().openInputStream(uri);
+                        InputStream is = getContentResolver().openInputStream(uri);
+                        int numPeaks = getNumPeaks(is);
+                        analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
+                        Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
+                        is.close();
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    int numPeaks = getNumPeaks(is);
-                    analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
-                    Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
+
                     break;
                 }
             case(MULTIPLE_FILES):
+                String jsonFilename = "";
                 if(data.getClipData() != null) {
                     int count = data.getClipData().getItemCount();
                     int currentItem = 0;
+                    // get directory as json filename
+                    Uri uri = data.getClipData().getItemAt(currentItem).getUri();
+                    jsonFilename = getJsonName(uri);
                     while(currentItem < count) {
-                        Uri uri = data.getClipData().getItemAt(currentItem).getUri();
+                        Log.d("Test-Data", "Analyzing file " + String.valueOf(currentItem+1) + " / " + String.valueOf(count));
+                        uri = data.getClipData().getItemAt(currentItem).getUri();
                         //do something with the file (save it to some directory or whatever you need to do with it here)
-                        InputStream is = null;
                         try {
-                            is = getContentResolver().openInputStream(uri);
+                            InputStream is = getContentResolver().openInputStream(uri);
+                            int numPeaks = getNumPeaks(is);
+                            analyzedFiles.add(new AnalyzedFile(getFileID(uri), numPeaks));
+                            is.close();
                         } catch (FileNotFoundException e) {
                             e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                        int numPeaks = getNumPeaks(is);
-                        analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
 
                         currentItem = currentItem + 1;
-
                     }
                 } else if(data.getData() != null) {
                     Uri uri = data.getData();
-                    InputStream is = null;
+                    jsonFilename = getJsonName(uri);
+
                     try {
-                        is = getContentResolver().openInputStream(uri);
+                        InputStream is = getContentResolver().openInputStream(uri);
+                        int numPeaks = getNumPeaks(is);
+                        analyzedFiles.add(new AnalyzedFile(getFileID(uri), numPeaks));
+                        is.close();
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                    int numPeaks = getNumPeaks(is);
-                    analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
+
                     //do something with the file (save it to some directory or whatever you need to do with it here)
                 }
 
@@ -274,12 +291,13 @@ public class MainActivity extends AppCompatActivity {
                 {
                     String dirName = "someDir";
                     // Get the directory for the user's public Downloads directory.
-                    File file = new File(Environment.getExternalStoragePublicDirectory(
+                    File folder = new File(Environment.getExternalStoragePublicDirectory(
                             Environment.DIRECTORY_DOWNLOADS), dirName);
-                    if (!file.mkdirs()) {
+                    if (!folder.mkdirs()) {
                         Log.e(LOG_TAG, "Directory not created");
                     }
                     try {
+                        File file = new File(folder, jsonFilename);
                         FileOutputStream fOut = new FileOutputStream(file);
                         JsonDataWriter.write(fOut, analyzedFiles);
                     } catch (FileNotFoundException e) {
@@ -295,6 +313,34 @@ public class MainActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
     }
 
+    private String getJsonName(Uri uri) {
+        String jsonFilename = uri.getPath();
+        int cut = jsonFilename.lastIndexOf('/');
+        if (cut != -1) {
+            jsonFilename = jsonFilename.substring(0, cut);
+        }
+        int cut2 = jsonFilename.lastIndexOf('/');
+        if (cut2 != -1) {
+            jsonFilename = jsonFilename.substring(cut2+1);
+        }
+        jsonFilename += ".json";
+        return jsonFilename;
+    }
+
+    @NonNull
+    private String getFileID(Uri uri) {
+        String fileID = uri.getPath();
+        int cut = fileID.lastIndexOf('/');
+        if (cut != -1) {
+            fileID = fileID.substring(cut + 1);
+        }
+        cut = fileID.lastIndexOf('.');
+        if (cut != -1) {
+            fileID = fileID.substring(0, cut);
+        }
+        return fileID;
+    }
+
     private int getNumPeaks(InputStream is) {
         ArrayList<Short> content = new ArrayList<>();
         try {
@@ -307,6 +353,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             is.close();
+            dis.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

@@ -1,27 +1,27 @@
 package com.example.matthias.myapplication;
 
 public class AnalyzedFile {
-    public String getFilename() {
-        return fname;
+    public String getFileID() {
+        return fID;
     }
 
     public int getSyllables() {
         return syl;
     }
 
-    private String fname;
+    private String fID;
     private int syl;
 
 
-    public AnalyzedFile(String filename, int syllables)
+    public AnalyzedFile(String fileID, int syllables)
     {
-        fname = filename;
+        fID = fileID;
         syl = syllables;
     }
 
-    public AnalyzedFile(String filename)
+    public AnalyzedFile(String fileID)
     {
-        fname = filename;
+        fID = fileID;
         syl = 0;
     }
 }
