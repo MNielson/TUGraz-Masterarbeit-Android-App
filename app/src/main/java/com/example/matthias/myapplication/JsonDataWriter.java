@@ -25,7 +25,8 @@ public class JsonDataWriter {
 
     private static void writeMessage(JsonWriter writer, AnalyzedFile file) throws IOException {
         writer.beginObject();
-        writer.name("filename").value(file.getFilename());
+        writer.name("fID").value(file.getFileID());
         writer.name("syllables").value(file.getSyllables());
+        writer.endObject();
     }
 }
