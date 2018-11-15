@@ -28,12 +28,15 @@ public class MyHandler extends Handler {
     }
     public void handleMessage(Message msg) {
         FolderToAnalyze f = (FolderToAnalyze) msg.obj;
-
-        for(Uri uri : f.getfiles()){
+        ArrayList<Uri> files = f.getfiles();
+        int i = 0;
+        for(Uri file : files){
             try {
-                InputStream is = mcontext.getContentResolver().openInputStream(uri);
+                i++;
+                Log.d(LOG_TAG, "Analyzing file " + Integer.toString(i) + "/" + Integer.toString(files.size()));
+                InputStream is = mcontext.getContentResolver().openInputStream(file);
                 int numPeaks = msyllableDetector.getNumPeaks(is);
-                analyzedFiles.add(new AnalyzedFile(HelperFunctions.getFileID(uri), numPeaks));
+                analyzedFiles.add(new AnalyzedFile(HelperFunctions.getFileID(file), numPeaks));
                 is.close();
             } catch (IOException e) {
                 e.printStackTrace();
