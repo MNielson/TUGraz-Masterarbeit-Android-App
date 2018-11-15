@@ -1,5 +1,6 @@
 package com.example.matthias.myapplication;
 
+import android.net.Uri;
 import android.util.Log;
 
 import java.nio.ByteBuffer;
@@ -72,6 +73,34 @@ public class HelperFunctions {
         }
         return result;
     }
+
+    static public String getJsonName(Uri uri) {
+        String jsonFilename = uri.getPath();
+        int cut = jsonFilename.lastIndexOf('/');
+        if (cut != -1) {
+            jsonFilename = jsonFilename.substring(0, cut);
+        }
+        int cut2 = jsonFilename.lastIndexOf('/');
+        if (cut2 != -1) {
+            jsonFilename = jsonFilename.substring(cut2+1);
+        }
+        jsonFilename += ".json";
+        return jsonFilename;
+    }
+
+    public static String getFileID(Uri uri) {
+        String fileID = uri.getPath();
+        int cut = fileID.lastIndexOf('/');
+        if (cut != -1) {
+            fileID = fileID.substring(cut + 1);
+        }
+        cut = fileID.lastIndexOf('.');
+        if (cut != -1) {
+            fileID = fileID.substring(0, cut);
+        }
+        return fileID;
+    }
+
 
 
 }
