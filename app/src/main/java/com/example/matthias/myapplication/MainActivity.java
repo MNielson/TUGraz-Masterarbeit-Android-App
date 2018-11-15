@@ -45,7 +45,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int SINGLE_FILE      = 1;
     private static final int MULTIPLE_FILES = 3;
 
-    final int SAMPLE_RATE = 44100; // 16k for speech. 44.1k for music.
+    public static final int SAMPLE_RATE = 44100; // 16k for speech. 44.1k for music.
     final String LOG_TAG = "Audio-Recording";
     private Handler mHandler;
     boolean mShouldContinue;
@@ -67,7 +67,9 @@ public class MainActivity extends AppCompatActivity {
     final int FH = 50;
     private Butterworth mBandpass;
     private Filterbank mFilterbank;
-    private Butterworth[] filters = new Butterworth[19];
+    //private Butterworth[] filters = new Butterworth[19];
+
+    private Foo syllableWorker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -150,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
         b18.bandPass(2, SAMPLE_RATE, 3300, 300);
         b19.bandPass(2, SAMPLE_RATE, 3750, 500);
 
+        Butterworth[] filters = new Butterworth[19];
         filters[1 -1] = b1;
         filters[2 -1] = b2;
         filters[3 -1] = b3;
@@ -169,6 +172,9 @@ public class MainActivity extends AppCompatActivity {
         filters[17-1] = b17;
         filters[18-1] = b18;
         filters[19-1] = b19;
+        SyllableDetector syl = new SyllableDetector(filters);
+        syllableWorker = new Foo(getApplicationContext(), syl);
+
 
         GraphView graph = findViewById(R.id.graph);
         mSeries = new LineGraphSeries<>();
@@ -229,6 +235,7 @@ public class MainActivity extends AppCompatActivity {
             case(SINGLE_FILE):
                 if(resultCode == RESULT_OK){
                     //the selected audio.
+                    /*
                     Uri uri = data.getData();
                     try {
                         InputStream is = getContentResolver().openInputStream(uri);
@@ -241,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-
+                    */
                     break;
                 }
             case(MULTIPLE_FILES):
@@ -251,224 +258,28 @@ public class MainActivity extends AppCompatActivity {
                     int currentItem = 0;
                     // get directory as json filename
                     Uri uri = data.getClipData().getItemAt(currentItem).getUri();
-                    jsonFilename = getJsonName(uri);
+                    jsonFilename = HelperFunctions.getJsonName(uri);
+                    ArrayList<Uri> files = new ArrayList<>();
+                    FolderToAnalyze foo = new FolderToAnalyze(jsonFilename, files);
+                    syllableWorker.sendMessage(foo);
+
                     while(currentItem < count) {
                         Log.d("Test-Data", "Analyzing file " + String.valueOf(currentItem+1) + " / " + String.valueOf(count));
                         uri = data.getClipData().getItemAt(currentItem).getUri();
-                        //do something with the file (save it to some directory or whatever you need to do with it here)
-                        try {
-                            InputStream is = getContentResolver().openInputStream(uri);
-                            int numPeaks = getNumPeaks(is);
-                            analyzedFiles.add(new AnalyzedFile(getFileID(uri), numPeaks));
-                            is.close();
-                        } catch (FileNotFoundException e) {
-                            e.printStackTrace();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-
+                        files.add(uri);
                         currentItem = currentItem + 1;
                     }
                 } else if(data.getData() != null) {
                     Uri uri = data.getData();
-                    jsonFilename = getJsonName(uri);
-
-                    try {
-                        InputStream is = getContentResolver().openInputStream(uri);
-                        int numPeaks = getNumPeaks(is);
-                        analyzedFiles.add(new AnalyzedFile(getFileID(uri), numPeaks));
-                        is.close();
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                    //do something with the file (save it to some directory or whatever you need to do with it here)
+                    jsonFilename = HelperFunctions.getJsonName(uri);
+                    FolderToAnalyze foo = new FolderToAnalyze(jsonFilename, uri);
+                    syllableWorker.sendMessage(foo);
                 }
-
-                if(isExternalStorageWritable())
-                {
-                    String dirName = "someDir";
-                    // Get the directory for the user's public Downloads directory.
-                    File folder = new File(Environment.getExternalStoragePublicDirectory(
-                            Environment.DIRECTORY_DOWNLOADS), dirName);
-                    if (!folder.mkdirs()) {
-                        Log.e(LOG_TAG, "Directory not created");
-                    }
-                    try {
-                        File file = new File(folder, jsonFilename);
-                        FileOutputStream fOut = new FileOutputStream(file);
-                        JsonDataWriter.write(fOut, analyzedFiles);
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                else
-                    Log.e(LOG_TAG, "Can't write to external storage");
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
     }
 
-    private String getJsonName(Uri uri) {
-        String jsonFilename = uri.getPath();
-        int cut = jsonFilename.lastIndexOf('/');
-        if (cut != -1) {
-            jsonFilename = jsonFilename.substring(0, cut);
-        }
-        int cut2 = jsonFilename.lastIndexOf('/');
-        if (cut2 != -1) {
-            jsonFilename = jsonFilename.substring(cut2+1);
-        }
-        jsonFilename += ".json";
-        return jsonFilename;
-    }
-
-    @NonNull
-    private String getFileID(Uri uri) {
-        String fileID = uri.getPath();
-        int cut = fileID.lastIndexOf('/');
-        if (cut != -1) {
-            fileID = fileID.substring(cut + 1);
-        }
-        cut = fileID.lastIndexOf('.');
-        if (cut != -1) {
-            fileID = fileID.substring(0, cut);
-        }
-        return fileID;
-    }
-
-    private int getNumPeaks(InputStream is) {
-        ArrayList<Short> content = new ArrayList<>();
-        try {
-            DataInputStream dis = new DataInputStream(is);
-
-            while(dis.available() > 0)
-            {
-                //reverse byte order in wav
-                content.add(Short.reverseBytes(dis.readShort()));
-            }
-
-            is.close();
-            dis.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-        // filter content
-        double[][] filteredResults = new double[19][content.size()];
-        double t = 0.0;
-        for(int i = 0; i < content.size(); i++)
-        {
-            t = content.get(i).doubleValue();
-            for(int j = 0; j < filters.length; j++)
-            {
-                filteredResults[j][i] = filters[j].filter(t);
-            }
-
-        }
-
-        //pad signal if needed
-
-        int chunkSize = SAMPLE_RATE / 10;
-        int paddingNeeded = chunkSize - (content.size() % chunkSize);
-        int paddedLength = content.size()+paddingNeeded;
-        double[][] filteredResultsWithPadding = new double[19][paddedLength];
-
-        for(int j = 0; j < filters.length; j++)
-        {
-            for (int i = 0; i < (paddedLength); i++)
-            {
-                if(i < content.size()) //add content
-                    filteredResultsWithPadding[j][i] = filteredResults[j][i];
-                else//add padding
-                    filteredResultsWithPadding[j][i] = 0.0d;
-            }
-        }
-
-        // compute energy in chunks
-
-        int numChunks = paddedLength / chunkSize; //should always be an int because we padded the array
-        double[][] energyVectors = new double[filters.length][numChunks];
-        double temp = 0.0d;
-        double e = 0.0d;
-        for(int k = 0; k < filters.length; k++)
-        {
-            for (int i = 0; i < numChunks; i++)
-            {
-                e = 0.0d;
-                for (int j = 0; j < chunkSize; j++)
-                {
-                    temp = filteredResultsWithPadding[k][i * chunkSize + j];
-                    e += Math.pow(temp, 2);
-                }
-                energyVectors[k][i] = e;
-            }
-        }
-
-
-        // compute trajectory
-        double[] trajectoryValues = new double[numChunks];
-
-        int N = filters.length;
-        double M = N * (N-1) * 0.5;
-        for(int k = 0; k < trajectoryValues.length; k++)
-        {
-            Double foo = 0.0;
-            for (int i = 0; i < N-2; i++)
-            {
-                for (int j = i+1; j < N-1; j++)
-                {
-                    foo += energyVectors[i][k] * energyVectors[j][k];
-                }
-            }
-            trajectoryValues[k] = foo / M;
-        }
-
-        //detect peaks
-
-        double delta = 0.5;
-
-        List<Double> maxima = new ArrayList<>();
-        List<Double> minima = new ArrayList<>();
-
-        Double maximum = null;
-        Double minimum = null;
-
-        boolean lookForMax = true;
-
-
-        for (double trajectoryValue : trajectoryValues) {
-            if (maximum == null || trajectoryValue > maximum) {
-                maximum = trajectoryValue;
-            }
-
-            if (minimum == null || trajectoryValue < minimum) {
-                minimum = trajectoryValue;
-            }
-
-            if (lookForMax) {
-                if (trajectoryValue < maximum - delta) {
-                    maxima.add(trajectoryValue);
-                    minimum = trajectoryValue;
-                    lookForMax = false;
-                }
-            } else {
-                if (trajectoryValue > minimum + delta) {
-                    minima.add(trajectoryValue);
-                    maximum = trajectoryValue;
-                    lookForMax = true;
-                }
-            }
-        }
-
-        int numPeaks = maxima.size();
-        return numPeaks;
-    }
 
     //onclick button
     public void onClickStartAudioRecording(View view) {
@@ -616,13 +427,13 @@ public class MainActivity extends AppCompatActivity {
             // permissions this app might request
         }
     }
-
-    /* Checks if external storage is available for read and write */
+/*
+    // Checks if external storage is available for read and write
     public boolean isExternalStorageWritable() {
         String state = Environment.getExternalStorageState();
         return Environment.MEDIA_MOUNTED.equals(state);
     }
-
+*/
     /* Checks if external storage is available to at least read */
     public boolean isExternalStorageReadable() {
         String state = Environment.getExternalStorageState();

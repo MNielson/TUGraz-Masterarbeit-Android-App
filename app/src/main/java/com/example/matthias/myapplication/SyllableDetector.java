@@ -1,16 +1,24 @@
 package com.example.matthias.myapplication;
 
-import android.util.Pair;
-
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Filter;
+
+import uk.me.berndporr.iirj.Butterworth;
+
+import static com.example.matthias.myapplication.MainActivity.SAMPLE_RATE;
 
 /**
  * Created by Matthias on 13.07.2018.
  */
 
 public class SyllableDetector {
+
+
+    private Butterworth[] mfilters;
+/*
     //private List<Double> pitches;
     private Double delta;
     private Filterbank mFilterbank;
@@ -117,4 +125,144 @@ public class SyllableDetector {
         int numPeaks = countPeaks(trajectory);
         return trajectory;
     }
+
+
+*/
+
+    public SyllableDetector(Butterworth[] filters){
+        mfilters = filters;
+    }
+
+    public int getNumPeaks(InputStream is) {
+        ArrayList<Short> content = new ArrayList<>();
+        try {
+            DataInputStream dis = new DataInputStream(is);
+
+            while(dis.available() > 0)
+            {
+                //reverse byte order in wav
+                content.add(Short.reverseBytes(dis.readShort()));
+            }
+
+            is.close();
+            dis.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        // filter content
+        double[][] filteredResults = new double[19][content.size()];
+        double t = 0.0;
+        for(int i = 0; i < content.size(); i++)
+        {
+            t = content.get(i).doubleValue();
+            for(int j = 0; j < mfilters.length; j++)
+            {
+                filteredResults[j][i] = mfilters[j].filter(t);
+            }
+
+        }
+
+        //pad signal if needed
+
+        int chunkSize = SAMPLE_RATE / 10;
+        int paddingNeeded = chunkSize - (content.size() % chunkSize);
+        int paddedLength = content.size()+paddingNeeded;
+        double[][] filteredResultsWithPadding = new double[19][paddedLength];
+
+        for(int j = 0; j < mfilters.length; j++)
+        {
+            for (int i = 0; i < (paddedLength); i++)
+            {
+                if(i < content.size()) //add content
+                    filteredResultsWithPadding[j][i] = filteredResults[j][i];
+                else//add padding
+                    filteredResultsWithPadding[j][i] = 0.0d;
+            }
+        }
+
+        // compute energy in chunks
+
+        int numChunks = paddedLength / chunkSize; //should always be an int because we padded the array
+        double[][] energyVectors = new double[mfilters.length][numChunks];
+        double temp = 0.0d;
+        double e = 0.0d;
+        for(int k = 0; k < mfilters.length; k++)
+        {
+            for (int i = 0; i < numChunks; i++)
+            {
+                e = 0.0d;
+                for (int j = 0; j < chunkSize; j++)
+                {
+                    temp = filteredResultsWithPadding[k][i * chunkSize + j];
+                    e += Math.pow(temp, 2);
+                }
+                energyVectors[k][i] = e;
+            }
+        }
+
+
+        // compute trajectory
+        double[] trajectoryValues = new double[numChunks];
+
+        int N = mfilters.length;
+        double M = N * (N-1) * 0.5;
+        for(int k = 0; k < trajectoryValues.length; k++)
+        {
+            Double foo = 0.0;
+            for (int i = 0; i < N-2; i++)
+            {
+                for (int j = i+1; j < N-1; j++)
+                {
+                    foo += energyVectors[i][k] * energyVectors[j][k];
+                }
+            }
+            trajectoryValues[k] = foo / M;
+        }
+
+        //detect peaks
+
+        double delta = 0.5;
+
+        List<Double> maxima = new ArrayList<>();
+        List<Double> minima = new ArrayList<>();
+
+        Double maximum = null;
+        Double minimum = null;
+
+        boolean lookForMax = true;
+
+
+        for (double trajectoryValue : trajectoryValues) {
+            if (maximum == null || trajectoryValue > maximum) {
+                maximum = trajectoryValue;
+            }
+
+            if (minimum == null || trajectoryValue < minimum) {
+                minimum = trajectoryValue;
+            }
+
+            if (lookForMax) {
+                if (trajectoryValue < maximum - delta) {
+                    maxima.add(trajectoryValue);
+                    minimum = trajectoryValue;
+                    lookForMax = false;
+                }
+            } else {
+                if (trajectoryValue > minimum + delta) {
+                    minima.add(trajectoryValue);
+                    maximum = trajectoryValue;
+                    lookForMax = true;
+                }
+            }
+        }
+
+        int numPeaks = maxima.size();
+        return numPeaks;
+    }
+
+
+
+
 }
