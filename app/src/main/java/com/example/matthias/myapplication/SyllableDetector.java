@@ -1,14 +1,19 @@
 package com.example.matthias.myapplication;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
 import uk.me.berndporr.iirj.Butterworth;
 
 import static com.example.matthias.myapplication.MainActivity.SAMPLE_RATE;
+import static java.lang.System.gc;
 
 /**
  * Created by Matthias on 13.07.2018.
@@ -133,54 +138,52 @@ public class SyllableDetector {
         mfilters = filters;
     }
 
-    public int getNumPeaks(InputStream is) {
-        ArrayList<Short> content = new ArrayList<>();
+    public int getNumPeaks(InputStream is) throws IOException {
+
+
+
+        byte[] bytes = IOUtils.toByteArray(is);
+        short[] content = new short[bytes.length / 2];
+        ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(content);
         try {
-            DataInputStream dis = new DataInputStream(is);
-
-            while(dis.available() > 0)
-            {
-                //reverse byte order in wav
-                content.add(Short.reverseBytes(dis.readShort()));
-            }
-
             is.close();
-            dis.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-
         // filter content
-        double[][] filteredResults = new double[19][content.size()];
+        double[][] filteredResults = new double[19][content.length];
         double t = 0.0;
-        for(int i = 0; i < content.size(); i++)
+        for(int i = 0; i < content.length; i++)
         {
-            t = content.get(i).doubleValue();
             for(int j = 0; j < mfilters.length; j++)
             {
-                filteredResults[j][i] = mfilters[j].filter(t);
+                filteredResults[j][i] = mfilters[j].filter((double)content[i]);
             }
 
         }
 
-        //pad signal if needed
 
-        int chunkSize = SAMPLE_RATE / 10;
-        int paddingNeeded = chunkSize - (content.size() % chunkSize);
-        int paddedLength = content.size()+paddingNeeded;
+        //pad signal if needed
+        int oSize = content.length;
+        content = null;
+
+        int chunkSize = SAMPLE_RATE / 100;
+        int paddingNeeded = chunkSize - (oSize % chunkSize);
+        int paddedLength = oSize+paddingNeeded;
         double[][] filteredResultsWithPadding = new double[19][paddedLength];
 
         for(int j = 0; j < mfilters.length; j++)
         {
             for (int i = 0; i < (paddedLength); i++)
             {
-                if(i < content.size()) //add content
+                if(i < oSize) //add content
                     filteredResultsWithPadding[j][i] = filteredResults[j][i];
                 else//add padding
                     filteredResultsWithPadding[j][i] = 0.0d;
             }
         }
+        filteredResults = null;
 
         // compute energy in chunks
 
@@ -201,6 +204,7 @@ public class SyllableDetector {
                 energyVectors[k][i] = e;
             }
         }
+        filteredResultsWithPadding = null;
 
 
         // compute trajectory
@@ -220,7 +224,7 @@ public class SyllableDetector {
             }
             trajectoryValues[k] = foo / M;
         }
-
+        energyVectors = null;
         //detect peaks
 
         double delta = 0.5;
@@ -259,6 +263,8 @@ public class SyllableDetector {
         }
 
         int numPeaks = maxima.size();
+        trajectoryValues = null;
+        gc();
         return numPeaks;
     }
 

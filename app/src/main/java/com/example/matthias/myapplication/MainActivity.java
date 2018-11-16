@@ -260,15 +260,14 @@ public class MainActivity extends AppCompatActivity {
                     Uri uri = data.getClipData().getItemAt(currentItem).getUri();
                     jsonFilename = HelperFunctions.getJsonName(uri);
                     ArrayList<Uri> files = new ArrayList<>();
-                    FolderToAnalyze foo = new FolderToAnalyze(jsonFilename, files);
-                    syllableWorker.sendMessage(foo);
-
                     while(currentItem < count) {
                         Log.d("Test-Data", "Analyzing file " + String.valueOf(currentItem+1) + " / " + String.valueOf(count));
                         uri = data.getClipData().getItemAt(currentItem).getUri();
                         files.add(uri);
                         currentItem = currentItem + 1;
                     }
+                    FolderToAnalyze foo = new FolderToAnalyze(jsonFilename, files);
+                    syllableWorker.sendMessage(foo);
                 } else if(data.getData() != null) {
                     Uri uri = data.getData();
                     jsonFilename = HelperFunctions.getJsonName(uri);
