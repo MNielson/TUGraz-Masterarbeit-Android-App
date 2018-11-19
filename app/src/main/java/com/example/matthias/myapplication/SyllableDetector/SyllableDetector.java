@@ -1,4 +1,4 @@
-package com.example.matthias.myapplication;
+package com.example.matthias.myapplication.SyllableDetector;
 
 import org.apache.commons.io.IOUtils;
 
