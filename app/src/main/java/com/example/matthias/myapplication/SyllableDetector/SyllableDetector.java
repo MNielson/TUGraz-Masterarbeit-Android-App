@@ -1,15 +1,23 @@
 package com.example.matthias.myapplication.SyllableDetector;
 
+import android.annotation.TargetApi;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
+
+import com.example.matthias.myapplication.BuildConfig;
+
 import org.apache.commons.io.IOUtils;
 
-import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
+import autovalue.shaded.org.apache.commons.lang.ArrayUtils;
 import uk.me.berndporr.iirj.Butterworth;
 
 import static com.example.matthias.myapplication.MainActivity.SAMPLE_RATE;
@@ -138,13 +146,18 @@ public class SyllableDetector {
         mfilters = filters;
     }
 
-    public int getNumPeaks(InputStream is) throws IOException {
+    @TargetApi(Build.VERSION_CODES.N)
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public SyllableResult getNumPeaks(InputStream is, String filename) throws IOException {
 
-
+        Optional<SyllableDetectorData> debugData = Optional.of(new SyllableDetectorData(filename));
 
         byte[] bytes = IOUtils.toByteArray(is);
         short[] content = new short[bytes.length / 2];
         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(content);
+        if(BuildConfig.DEBUG) {
+            debugData.get().setContent(Arrays.asList(ArrayUtils.toObject(content)));
+        }
         try {
             is.close();
         } catch (IOException e) {
@@ -183,6 +196,19 @@ public class SyllableDetector {
                     filteredResultsWithPadding[j][i] = 0.0d;
             }
         }
+        if(BuildConfig.DEBUG){
+            List<List<Double>> x = new ArrayList<>();
+            for(int j = 0; j < mfilters.length; j++)
+            {
+                double[] tArr = new double[paddedLength];
+                for (int i = 0; i < (paddedLength); i++)
+                {
+                    tArr[i] = filteredResultsWithPadding[j][i];
+                }
+                Arrays.asList(ArrayUtils.toObject(tArr));
+            }
+            debugData.get().setFilteredResults(x);
+        }
         filteredResults = null;
 
         // compute energy in chunks
@@ -204,6 +230,20 @@ public class SyllableDetector {
                 energyVectors[k][i] = e;
             }
         }
+
+        if(BuildConfig.DEBUG){
+            List<List<Double>> x = new ArrayList<>();
+            for(int k = 0; k < mfilters.length; k++)
+            {
+                double[] tArr = new double[numChunks];
+                for (int i = 0; i < numChunks; i++)
+                {
+                    tArr[i] = energyVectors[k][i];
+                }
+                Arrays.asList(ArrayUtils.toObject(tArr));
+            }
+            debugData.get().setFilteredResults(x);
+        }
         filteredResultsWithPadding = null;
 
 
@@ -224,7 +264,11 @@ public class SyllableDetector {
             }
             trajectoryValues[k] = foo / M;
         }
+        if(BuildConfig.DEBUG){
+            debugData.get().setTrajectoryValues(Arrays.asList(ArrayUtils.toObject(trajectoryValues)));
+        }
         energyVectors = null;
+
         //detect peaks
 
         double delta = 0.5;
@@ -232,40 +276,61 @@ public class SyllableDetector {
         List<Double> maxima = new ArrayList<>();
         List<Double> minima = new ArrayList<>();
 
+        List<Integer> maximaPos = new ArrayList<>();
+        List<Integer> minimaPos = new ArrayList<>();
+
         Double maximum = null;
         Double minimum = null;
 
         boolean lookForMax = true;
 
 
+        Integer pos = 0;
+        int maximaP = 0;
+        int minimaP = 0;
         for (double trajectoryValue : trajectoryValues) {
             if (maximum == null || trajectoryValue > maximum) {
                 maximum = trajectoryValue;
+                maximaP = pos;
             }
 
             if (minimum == null || trajectoryValue < minimum) {
                 minimum = trajectoryValue;
+                minimaP = pos;
             }
 
             if (lookForMax) {
                 if (trajectoryValue < maximum - delta) {
                     maxima.add(trajectoryValue);
                     minimum = trajectoryValue;
+                    maximaPos.add(maximaP);
+                    minimaP = pos;
                     lookForMax = false;
                 }
             } else {
                 if (trajectoryValue > minimum + delta) {
                     minima.add(trajectoryValue);
                     maximum = trajectoryValue;
+                    minimaPos.add(minimaP);
+                    maximaP = pos;
                     lookForMax = true;
                 }
             }
+            pos++;
         }
+
+        if(BuildConfig.DEBUG){
+            debugData.get().setMaxima(maxima);
+            debugData.get().setMaximaPos(maximaPos);
+            debugData.get().setMinima(minima);
+            debugData.get().setMinimaPos(minimaPos);
+        }
+
 
         int numPeaks = maxima.size();
         trajectoryValues = null;
         gc();
-        return numPeaks;
+        return new SyllableResult(numPeaks, debugData);
     }
 
 

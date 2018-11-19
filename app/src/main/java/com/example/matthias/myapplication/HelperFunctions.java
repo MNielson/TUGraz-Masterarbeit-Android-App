@@ -5,7 +5,10 @@ import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * Created by Matthias on 20.03.2018.
@@ -84,7 +87,6 @@ public class HelperFunctions {
         if (cut2 != -1) {
             jsonFilename = jsonFilename.substring(cut2+1);
         }
-        jsonFilename += ".json";
         return jsonFilename;
     }
 
@@ -100,6 +102,7 @@ public class HelperFunctions {
         }
         return fileID;
     }
+
 
 
 
