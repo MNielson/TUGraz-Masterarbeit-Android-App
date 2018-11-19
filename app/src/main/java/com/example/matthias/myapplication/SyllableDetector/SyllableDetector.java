@@ -181,7 +181,7 @@ public class SyllableDetector {
         int oSize = content.length;
         content = null;
 
-        int chunkSize = SAMPLE_RATE / 100;
+        int chunkSize = SAMPLE_RATE / 50;
         int paddingNeeded = chunkSize - (oSize % chunkSize);
         int paddedLength = oSize+paddingNeeded;
         double[][] filteredResultsWithPadding = new double[19][paddedLength];

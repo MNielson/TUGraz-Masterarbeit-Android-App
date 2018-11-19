@@ -72,6 +72,7 @@ public class MyHandler extends Handler {
                     File debugInfoFile = new File(folder, f.getoutFileName() +"_debug.json");
                     FileOutputStream fOutDebug = new FileOutputStream(debugInfoFile);
                     SyllableDebugJsonWriter.write(fOutDebug, results);
+                    Log.d(LOG_TAG, "Finished writing debug JSON");
                 }
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
