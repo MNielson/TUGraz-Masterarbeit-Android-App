@@ -205,7 +205,7 @@ public class SyllableDetector {
                 {
                     tArr[i] = filteredResultsWithPadding[j][i];
                 }
-                Arrays.asList(ArrayUtils.toObject(tArr));
+                x.add(Arrays.asList(ArrayUtils.toObject(tArr)));
             }
             debugData.get().setFilteredResults(x);
         }
@@ -240,9 +240,9 @@ public class SyllableDetector {
                 {
                     tArr[i] = energyVectors[k][i];
                 }
-                Arrays.asList(ArrayUtils.toObject(tArr));
+                x.add(Arrays.asList(ArrayUtils.toObject(tArr)));
             }
-            debugData.get().setFilteredResults(x);
+            debugData.get().setEnergyVectors(x);
         }
         filteredResultsWithPadding = null;
 
