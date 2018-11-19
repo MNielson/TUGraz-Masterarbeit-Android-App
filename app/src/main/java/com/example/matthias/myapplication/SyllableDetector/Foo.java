@@ -1,9 +1,13 @@
-package com.example.matthias.myapplication;
+package com.example.matthias.myapplication.SyllableDetector;
 
 import android.content.Context;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+
+import com.example.matthias.myapplication.FolderToAnalyze;
+import com.example.matthias.myapplication.SyllableDetector.MyHandler;
+import com.example.matthias.myapplication.SyllableDetector.SyllableDetector;
 
 public class Foo {
     HandlerThread myThread;

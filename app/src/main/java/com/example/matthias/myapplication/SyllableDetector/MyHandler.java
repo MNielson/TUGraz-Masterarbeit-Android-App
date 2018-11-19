@@ -1,4 +1,4 @@
-package com.example.matthias.myapplication;
+package com.example.matthias.myapplication.SyllableDetector;
 
 import android.content.Context;
 import android.net.Uri;
@@ -7,6 +7,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+
+import com.example.matthias.myapplication.AnalyzedFile;
+import com.example.matthias.myapplication.BuildConfig;
+import com.example.matthias.myapplication.FolderToAnalyze;
+import com.example.matthias.myapplication.HelperFunctions;
+import com.example.matthias.myapplication.JsonDataWriter;
+import com.example.matthias.myapplication.SyllableDetector.SyllableDetector;
 
 import java.io.File;
 import java.io.FileNotFoundException;
