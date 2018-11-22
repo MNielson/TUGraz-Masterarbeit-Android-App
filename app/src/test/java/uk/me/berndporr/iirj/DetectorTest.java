@@ -43,7 +43,7 @@ public class DetectorTest {
 	}		
 
 
-	@Test
+	@PeakResults
 	public void detTest() throws Exception {
 		createDir();
 		

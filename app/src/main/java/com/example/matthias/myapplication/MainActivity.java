@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -20,17 +21,24 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 
-import com.example.matthias.myapplication.SyllableDetector.Foo;
 import com.example.matthias.myapplication.SyllableDetector.SyllableDetector;
+import com.example.matthias.myapplication.SyllableDetector.SyllableDetectorConfig;
+import com.example.matthias.myapplication.SyllableDetector.SyllableDetectorWorker;
 import com.jjoe64.graphview.GraphView;
 import com.jjoe64.graphview.series.DataPoint;
 import com.jjoe64.graphview.series.LineGraphSeries;
 
+import org.apache.commons.io.IOUtils;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import uk.me.berndporr.iirj.Butterworth;
 
@@ -50,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private AudioWorker mAudioWorker;
     private AudioFileReader mAudioFileReader;
     private PitchDetector mPitchDetector;
-    private SyllableDetector mSyllableDetector;
+    private SyllableDetectorWorker mSyllableDetectorWorker;
 
     private ArrayList<AnalyzedFile> analyzedFiles = new ArrayList<>();
 
@@ -66,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
     private Filterbank mFilterbank;
     //private Butterworth[] filters = new Butterworth[19];
 
-    private Foo syllableWorker;
+    private SyllableDetector syllableWorker;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,30 +92,6 @@ public class MainActivity extends AppCompatActivity {
 
         mBandpass = new Butterworth();
         mBandpass.bandPass(2, SAMPLE_RATE, (FH - FL) / 2, FH - FL);
-
-        /*
-        mFilterbank = new Filterbank(SAMPLE_RATE);
-        mFilterbank.addFilter(2,  240, 120 );
-        mFilterbank.addFilter(2,  360, 120 );
-        mFilterbank.addFilter(2,  480, 120 );
-        mFilterbank.addFilter(2,  600, 120 );
-        mFilterbank.addFilter(2,  720, 120 );
-        mFilterbank.addFilter(2,  840, 120 );
-        mFilterbank.addFilter(2, 1000, 150 );
-        mFilterbank.addFilter(2, 1150, 150 );
-        mFilterbank.addFilter(2, 1300, 150 );
-        mFilterbank.addFilter(2, 1450, 150 );
-        mFilterbank.addFilter(2, 1600, 150 );
-        mFilterbank.addFilter(2, 1800, 200 );
-        mFilterbank.addFilter(2, 2000, 200 );
-        mFilterbank.addFilter(2, 2200, 200 );
-        mFilterbank.addFilter(2, 2400, 200 );
-        mFilterbank.addFilter(2, 2700, 300 );
-        mFilterbank.addFilter(2, 3000, 300 );
-        mFilterbank.addFilter(2, 3300, 300 );
-        mFilterbank.addFilter(2, 3750, 500 );
-        mSyllableDetector = new SyllableDetector(mFilterbank);
-        */
 
         Butterworth b1 = new Butterworth();
         Butterworth b2 = new Butterworth();
@@ -169,8 +153,10 @@ public class MainActivity extends AppCompatActivity {
         filters[17-1] = b17;
         filters[18-1] = b18;
         filters[19-1] = b19;
-        SyllableDetector syl = new SyllableDetector(filters);
-        syllableWorker = new Foo(getApplicationContext(), syl);
+        SyllableDetectorWorker syl = new SyllableDetectorWorker(filters);
+
+        SyllableDetectorConfig config = new SyllableDetectorConfig(2, 20);
+        syllableWorker = new SyllableDetector(syl, config);
 
 
         GraphView graph = findViewById(R.id.graph);
@@ -189,14 +175,19 @@ public class MainActivity extends AppCompatActivity {
          */
             @Override
             public void handleMessage(Message inputMessage) {
+                short[] audioBuffer = (short[]) inputMessage.obj;
+                syllableWorker.process(audioBuffer);
+                mAudioWorker.computePitch(audioBuffer);
+                /*
                 Bundle bundle = (Bundle) inputMessage.obj;
                 short[] audioBuffer = bundle.getShortArray("AudioBuffer");
                 double pitch = bundle.getDouble("Pitch");
-                //mSyllableDetector.addPitch(pitch);
+                //mSyllableDetectorWorker.addPitch(pitch);
                 audioBuffers.add(audioBuffer);
                 mSeries.appendData(new DataPoint(mGraphLastXValue, pitch+1d), true, 1000);
                 mGraphLastXValue += 0.5d;
                 Log.d(LOG_TAG, "Stuff");
+                */
             }
         };
     }
@@ -231,12 +222,45 @@ public class MainActivity extends AppCompatActivity {
         switch(requestCode){
             case(SINGLE_FILE):
                 if(resultCode == RESULT_OK){
+                    Uri uri = data.getData();
+                    InputStream is;
+                    try {
+                        is = getContentResolver().openInputStream(uri);
+                        byte[] bytes = IOUtils.toByteArray(is);
+                        short[] content = new short[bytes.length / 2];
+                        ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(content);
+                        double bufferSize = 5000.0;
+                        int numBuffers = (int) Math.round(Math.ceil(content.length / bufferSize));
+                        boolean lastNeedsPadding = (Math.ceil(content.length / bufferSize) % 1 != 0);
+                        for(int i = 0; i < numBuffers; i++){
+                            short[] b = new short[(int) bufferSize];
+                            if((i+1) == numBuffers && lastNeedsPadding) {
+                                Arrays.fill(b, (short) 0);
+                                b = Arrays.copyOfRange(content, i * 500, content.length);
+                            }
+                            else
+                                b = Arrays.copyOfRange(content, i * 500, (i+1) * 500);
+                            syllableWorker.process(b);
+                            mAudioWorker.computePitch(b);
+                            try {
+                                Thread.sleep(500);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
                     //the selected audio.
                     /*
                     Uri uri = data.getData();
                     try {
                         InputStream is = getContentResolver().openInputStream(uri);
-                        int numPeaks = getNumPeaks(is);
+                        int numPeaks = syllablesFromFile(is);
                         analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
                         Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
                         is.close();
@@ -249,6 +273,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 }
             case(MULTIPLE_FILES):
+                /*
                 String jsonFilename = "";
                 if(data.getClipData() != null) {
                     int count = data.getClipData().getItemCount();
@@ -258,7 +283,7 @@ public class MainActivity extends AppCompatActivity {
                     jsonFilename = HelperFunctions.getJsonName(uri);
                     ArrayList<Uri> files = new ArrayList<>();
                     while(currentItem < count) {
-                        Log.d("Test-Data", "Analyzing file " + String.valueOf(currentItem+1) + " / " + String.valueOf(count));
+                        Log.d("PeakResults-Data", "Analyzing file " + String.valueOf(currentItem+1) + " / " + String.valueOf(count));
                         uri = data.getClipData().getItemAt(currentItem).getUri();
                         files.add(uri);
                         currentItem = currentItem + 1;
@@ -271,6 +296,7 @@ public class MainActivity extends AppCompatActivity {
                     FolderToAnalyze foo = new FolderToAnalyze(jsonFilename, uri);
                     syllableWorker.sendMessage(foo);
                 }
+                */
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
@@ -291,7 +317,7 @@ public class MainActivity extends AppCompatActivity {
     public void onClickStopAudioRecording(View view) {
         mShouldContinue = false;
         audioBuffers.size(); //audioBuffers always contains the same data here.
-        //int numPeaks = mSyllableDetector.countPeaks();
+        //int numPeaks = mSyllableDetectorWorker.countPeaks();
         //Log.d(LOG_TAG, "Detected " +numPeaks+ " peaks / syllables? in recorded audio.");
     }
 
@@ -346,7 +372,10 @@ public class MainActivity extends AppCompatActivity {
                     System.arraycopy( audioBuffer, 0, workBuffer, 0, audioBuffer.length );
                     shortsRead += numberOfShort;
 
-
+                    Message msg = mHandler.obtainMessage();
+                    msg.obj = audioBuffer;
+                    mHandler.sendMessage(msg);
+                    /*
                     //filter microphone input
                     Double f[] = new Double[audioBuffer.length];
                     for(int i = 0; i < audioBuffer.length; i++)
@@ -363,7 +392,7 @@ public class MainActivity extends AppCompatActivity {
                     Message msg = new Message();
                     msg.obj = bundle;
                     mHandler.sendMessage(msg);
-
+                    */
                 }
 
                 record.stop();
