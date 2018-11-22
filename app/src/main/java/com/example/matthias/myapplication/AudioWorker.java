@@ -2,6 +2,7 @@ package com.example.matthias.myapplication;
 
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.util.Log;
 
 import java.util.LinkedList;
 
@@ -18,6 +19,7 @@ public class AudioWorker extends HandlerThread {
     private int doublesPerSample = 1024;
     //private Lock pitchResultLock;
     private LinkedList<Double> pitchResults;
+    final String LOG_TAG = "AudioWorker";
 
 
     public AudioWorker(String name, PitchDetector pd) {
@@ -40,6 +42,17 @@ public class AudioWorker extends HandlerThread {
         for(int i = 0; i < len; i++)
             primSamples[i] = signal.getSignal()[i].doubleValue();
         double pitch = mPitchDetector.computePitch(primSamples, 0, signal.getSignal().length);
+        return pitch;
+    }
+
+    public double computePitch(short[] content)
+    {
+        int len = content.length;
+        double[] primSamples = new double[len];
+        for(int i = 0; i < len; i++)
+            primSamples[i] = (double) content[i];
+        double pitch = mPitchDetector.computePitch(primSamples, 0, len);
+        Log.d(LOG_TAG, "Detected " + Double.toString(pitch) + "hz pitch");
         return pitch;
     }
 
