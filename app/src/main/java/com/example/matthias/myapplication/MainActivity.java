@@ -89,6 +89,7 @@ public class MainActivity extends AppCompatActivity {
         mAudioWorker = new AudioWorker("foo", mPitchDetector);
         mAudioFileReader = new AudioFileReader(mAudioWorker, this);
         requestRecordAudioPermission();
+        requestStoragePermission();
 
         mBandpass = new Butterworth();
         mBandpass.bandPass(2, SAMPLE_RATE, (FH - FL) / 2, FH - FL);
@@ -155,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
         filters[19-1] = b19;
         SyllableDetectorWorker syl = new SyllableDetectorWorker(filters);
 
-        SyllableDetectorConfig config = new SyllableDetectorConfig(2, 20);
+        SyllableDetectorConfig config = new SyllableDetectorConfig(2, 100, 19);
         syllableWorker = new SyllableDetector(syl, config);
 
 
@@ -229,21 +230,21 @@ public class MainActivity extends AppCompatActivity {
                         byte[] bytes = IOUtils.toByteArray(is);
                         short[] content = new short[bytes.length / 2];
                         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(content);
-                        double bufferSize = 5000.0;
-                        int numBuffers = (int) Math.round(Math.ceil(content.length / bufferSize));
-                        boolean lastNeedsPadding = (Math.ceil(content.length / bufferSize) % 1 != 0);
+                        int bufferSize = Math.min(SAMPLE_RATE + 400, content.length);
+                        int numBuffers = (int) Math.round(Math.ceil((double)content.length / bufferSize));
+                        boolean lastNeedsPadding = (Math.ceil((double)content.length / bufferSize) % 1 != 0);
                         for(int i = 0; i < numBuffers; i++){
-                            short[] b = new short[(int) bufferSize];
+                            short[] b = new short[bufferSize];
                             if((i+1) == numBuffers && lastNeedsPadding) {
                                 Arrays.fill(b, (short) 0);
-                                b = Arrays.copyOfRange(content, i * 500, content.length);
+                                b = Arrays.copyOfRange(content, i * bufferSize, content.length);
                             }
                             else
-                                b = Arrays.copyOfRange(content, i * 500, (i+1) * 500);
+                                b = Arrays.copyOfRange(content, i * bufferSize, (i+1) * bufferSize);
                             syllableWorker.process(b);
                             mAudioWorker.computePitch(b);
                             try {
-                                Thread.sleep(500);
+                                Thread.sleep(5);
                             } catch (InterruptedException e) {
                                 e.printStackTrace();
                             }
@@ -422,6 +423,30 @@ public class MainActivity extends AppCompatActivity {
                     // No explanation needed, we can request the permission.
 
                     ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 1);
+                }
+            }
+        }
+    }
+
+    private void requestStoragePermission() {
+        //check API version, do nothing if API version < 23!
+        int currentapiVersion = android.os.Build.VERSION.SDK_INT;
+        if (currentapiVersion > android.os.Build.VERSION_CODES.LOLLIPOP){
+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+
+                // Should we show an explanation?
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+                    // Show an expanation to the user *asynchronously* -- don't block
+                    // this thread waiting for the user's response! After the user
+                    // sees the explanation, try again to request the permission.
+
+                } else {
+
+                    // No explanation needed, we can request the permission.
+
+                    ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
                 }
             }
         }

@@ -2,6 +2,7 @@ package com.example.matthias.myapplication.SyllableDetector;
 
 import android.annotation.TargetApi;
 import android.os.Build;
+import android.os.Environment;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
@@ -9,6 +10,9 @@ import com.example.matthias.myapplication.BuildConfig;
 
 import org.apache.commons.io.IOUtils;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -156,11 +160,49 @@ public class SyllableDetectorWorker {
         return trajectory;
     }
 
-    public int peaksFromFiltered(List<ArrayList<Double>> filtered, int chunkSize, int elements)
+    public int peaksFromFiltered(List<ArrayList<Double>> filtered, int chunkSize, int elements, int debugFileCounter)
     {
         List<ArrayList<Double>> energyVectors = computeEnergyVectors(filtered, chunkSize, elements);
         List<Double> trajectory = computeTrajectory(energyVectors, chunkSize, elements);
         PeakResults peakResults = detectPeaks(trajectory);
+
+        if(BuildConfig.DEBUG)
+        {
+            // write stuff to json
+            if(BuildConfig.DEBUG)
+            {
+                String dirName = "debug-data";
+                File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), dirName);
+                if (!folder.mkdirs())
+                    Log.d(LOG_TAG, "Directory not created");
+                try {
+                    File file = new File(folder, Integer.toString(debugFileCounter) + "-energy.txt");
+                    FileWriter foo = new FileWriter(file);
+                    for(ArrayList<Double> ld : energyVectors) {
+                        for(double d : ld)
+                        {
+                            foo.write(Double.toString(d));
+                            foo.write("\n");
+                        }
+                    }
+                    foo.close();
+                    File file2 = new File(folder, Integer.toString(debugFileCounter) + "-trajectory.txt");
+                    FileWriter foo2 = new FileWriter(file2);
+                    for(double d : trajectory)
+                    {
+                        foo2.write(Double.toString(d));
+                        foo2.write("\n");
+                    }
+                    foo2.close();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+
         return peakResults.getMaxima().size();
     }
 
@@ -178,13 +220,20 @@ public class SyllableDetectorWorker {
 
     public List<ArrayList<Double>> filterBuffer(List<Short> content) {
         List<ArrayList<Double>> filtered = new ArrayList<>();
-        for(int i = 0; i < content.size(); i++)
-        {
+        long startTime = System.nanoTime();
+        for(int j = 0; j < mfilters.length; j++) {
             ArrayList<Double> l = new ArrayList<>();
-            for(int j = 0; j < mfilters.length; j++)
+            for(int i = 0; i < content.size(); i++){
                 l.add(mfilters[j].filter((double) content.get(i)));
+            }
             filtered.add(l);
         }
+        long stopTime = System.nanoTime();
+        long timeElapsed = stopTime - startTime;
+
+        System.out.println("Execution time in milliseconds : " +
+                timeElapsed / 1000000);
+        Log.d(LOG_TAG, "Filtered " + content.size() + " elements in " + Long.toString(timeElapsed / 1000000) +"ms");
         return filtered;
     }
 
@@ -218,9 +267,9 @@ public class SyllableDetectorWorker {
                 e += Math.pow(d, 2);
                 elementsInChunk++;
                 if (elementsInChunk == chunkSize) {
+                    energy.add(e);
                     elementsInChunk = 0;
                     e = 0.0d;
-                    energy.add(e);
                 }
             }
             energyVectors.add(energy);
