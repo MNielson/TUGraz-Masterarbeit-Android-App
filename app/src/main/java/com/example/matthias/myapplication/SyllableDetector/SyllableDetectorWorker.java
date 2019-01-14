@@ -37,85 +37,6 @@ public class SyllableDetectorWorker {
     final String LOG_TAG = "SyllableDetectorWorker";
     private Butterworth[] mfilters;
 
-//    @TargetApi(Build.VERSION_CODES.N)
-//    @RequiresApi(api = Build.VERSION_CODES.N)
-//    public SyllableResult syllablesFromFile(InputStream is, String filename) throws IOException {
-//
-//        Optional<SyllableDetectorData> debugData = Optional.of(new SyllableDetectorData(filename));
-//
-//        byte[] bytes = IOUtils.toByteArray(is);
-//        short[] content = new short[bytes.length / 2];
-//        ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(content);
-//        if(BuildConfig.DEBUG) {
-//            debugData.get().setContent(Arrays.asList(ArrayUtils.toObject(content)));
-//        }
-//        try {
-//            is.close();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//
-//        // filter content
-//        double[][] filteredResults = filterBuffer(content);
-//
-//
-//        //pad signal if needed
-//        int oSize = content.length;
-//        content = null;
-//
-//        int chunkSize = SAMPLE_RATE / 100;
-//        int paddingNeeded = chunkSize - (oSize % chunkSize);
-//        int paddedLength = oSize+paddingNeeded;
-//
-//        double[][] filteredResultsWithPadding = padSignal(filteredResults, oSize, paddedLength);
-//
-//        if(BuildConfig.DEBUG){
-//            List<List<Double>> x = new ArrayList<>();
-//            for(int j = 0; j < mfilters.length; j++)
-//            {
-//                double[] tArr = new double[paddedLength];
-//                for (int i = 0; i < (paddedLength); i++)
-//                {
-//                    tArr[i] = filteredResultsWithPadding[j][i];
-//                }
-//                Arrays.asList(ArrayUtils.toObject(tArr));
-//            }
-//            debugData.get().setFilteredResults(x);
-//        }
-//        filteredResults = null;
-//
-//        // compute energy in chunks
-//
-//        int numChunks = paddedLength / chunkSize; //should always be an int because we padded the array
-//        double[][] energyVectors = computeEnergyVectors(chunkSize, filteredResultsWithPadding, numChunks);
-//
-//        if(BuildConfig.DEBUG){
-//            List<List<Double>> x = new ArrayList<>();
-//            for(int k = 0; k < mfilters.length; k++)
-//            {
-//                double[] tArr = new double[numChunks];
-//                for (int i = 0; i < numChunks; i++)
-//                {
-//                    tArr[i] = energyVectors[k][i];
-//                }
-//                Arrays.asList(ArrayUtils.toObject(tArr));
-//            }
-//            debugData.get().setFilteredResults(x);
-//        }
-//        filteredResultsWithPadding = null;
-//
-//
-//        // compute trajectory
-//        double[] trajectoryValues = computeTrajectory(numChunks, energyVectors);
-//        if(BuildConfig.DEBUG){
-//            debugData.get().setTrajectoryValues(Arrays.asList(ArrayUtils.toObject(trajectoryValues)));
-//        }
-//        energyVectors = null;
-//
-//        //detect peaks
-//        return new SyllableResult(3, debugData);
-//    }
-//
     private double[] computeTrajectory(int numChunks, double[][] energyVectors) {
         double[] trajectoryValues = new double[numChunks];
 
@@ -206,17 +127,6 @@ public class SyllableDetectorWorker {
         return peakResults.getMaxima().size();
     }
 
-    /*
-    public void syllablesFromBuffer(short[] content, int chunkSize) {
-        List<ArrayList<Double>> filtered = filterBuffer(content);
-        int paddingNeeded = chunkSize - (content.length % chunkSize);
-        int paddedLength = content.length+paddingNeeded;
-        //double[][] padded = padSignal(filtered, content.length, paddedLength);
-        //double[][] energyVectors = computeEnergyVectors(chunkSize, padded, paddedLength / chunkSize);
-
-        // TODO: detect syllables
-    }
-    */
 
     public List<ArrayList<Double>> filterBuffer(List<Short> content) {
         List<ArrayList<Double>> filtered = new ArrayList<>();

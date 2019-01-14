@@ -16,10 +16,8 @@ import java.util.LinkedList;
 
 public class AudioFileReader {
 
-    private AudioWorker mAudioWorker;
     private Context mContext;
-    public AudioFileReader(AudioWorker aw, Context c){
-        mAudioWorker = aw;
+    public AudioFileReader(Context c){
         mContext = c;
     }
 

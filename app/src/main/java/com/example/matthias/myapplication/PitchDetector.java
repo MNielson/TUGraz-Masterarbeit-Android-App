@@ -16,7 +16,7 @@ public class PitchDetector {
     private native double computePitchNative(double[] samples, int startSample, int sampleCount);
     private native double testNative(double [] samples, int sampleCount);
 
-    PitchDetector(){
+    public PitchDetector(){
         initCppSide();
     }
 

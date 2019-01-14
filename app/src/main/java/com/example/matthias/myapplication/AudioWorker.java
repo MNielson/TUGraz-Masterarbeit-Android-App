@@ -10,7 +10,7 @@ import java.util.LinkedList;
  * Created by Matthias on 20.03.2018.
  */
 
-
+/*
 public class AudioWorker extends HandlerThread {
 
     private Handler mWorkerHandler;
@@ -84,3 +84,4 @@ public class AudioWorker extends HandlerThread {
         mWorkerHandler = new Handler(getLooper());
     }
 }
+*/

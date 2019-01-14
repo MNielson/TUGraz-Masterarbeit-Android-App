@@ -5,6 +5,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.widget.ArrayAdapter;
 
 import com.example.matthias.myapplication.BuildConfig;
 
@@ -36,8 +37,7 @@ public class MyHandler extends Handler {
         debugFileCounter = 0;
         filteredBuffers = new ArrayList<>();
         for(int i = 0; i < config.numFilters; i++){
-            filteredBuffers.add(new ArrayList<>());
-
+            filteredBuffers.add(new ArrayList<Double>());
         }
     }
 
@@ -110,58 +110,6 @@ public class MyHandler extends Handler {
             // TODO: do something with result
             debugFileCounter++;
         }
-
-
-
-
-
-        /*
-        FolderToAnalyze f = (FolderToAnalyze) msg.obj;
-        ArrayList<Uri> files = f.getfiles();
-        int i = 0;
-        List<SyllableResult> results = new ArrayList<>();
-        for(Uri file : files){
-            try {
-                i++;
-                Log.d(LOG_TAG, "Analyzing file " + Integer.toString(i) + "/" + Integer.toString(files.size()));
-                InputStream is = mcontext.getContentResolver().openInputStream(file);
-                SyllableResult s = msyllableDetectorWorker.syllablesFromFile(is, HelperFunctions.getFileID(file));
-                results.add(s);
-                analyzedFiles.add(new AnalyzedFile(HelperFunctions.getFileID(file), s.numSyllables));
-                is.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        if(isExternalStorageWritable())
-        {
-            String dirName = "someDir";
-            // Get the directory for the user's public Downloads directory.
-            File folder = new File(Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS), dirName);
-            if (!folder.mkdirs()) {
-                Log.d(LOG_TAG, "Directory not created");
-            }
-            try {
-                File file = new File(folder, f.getoutFileName() + ".json");
-                FileOutputStream fOut = new FileOutputStream(file);
-                JsonDataWriter.write(fOut, analyzedFiles);
-                if(BuildConfig.DEBUG){
-                    File debugInfoFile = new File(folder, f.getoutFileName() +"_debug.json");
-                    FileOutputStream fOutDebug = new FileOutputStream(debugInfoFile);
-                    SyllableDebugJsonWriter.write(fOutDebug, results);
-                    Log.d(LOG_TAG, "Finished writing debug JSON");
-                }
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        else
-            Log.e(LOG_TAG, "Can't write to external storage");
-        */
-
     }
 
     /* Checks if external storage is available for read and write */

@@ -55,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
     private Handler mHandler;
     boolean mShouldContinue;
 
-    private AudioWorker mAudioWorker;
     private AudioFileReader mAudioFileReader;
     private PitchDetector mPitchDetector;
     private SyllableDetectorWorker mSyllableDetectorWorker;
@@ -86,8 +85,6 @@ public class MainActivity extends AppCompatActivity {
         //tv.setText(stringFromJNI());
 
         mPitchDetector = new PitchDetector();
-        mAudioWorker = new AudioWorker("foo", mPitchDetector);
-        mAudioFileReader = new AudioFileReader(mAudioWorker, this);
         requestRecordAudioPermission();
         requestStoragePermission();
 
@@ -178,17 +175,7 @@ public class MainActivity extends AppCompatActivity {
             public void handleMessage(Message inputMessage) {
                 short[] audioBuffer = (short[]) inputMessage.obj;
                 syllableWorker.process(audioBuffer);
-                mAudioWorker.computePitch(audioBuffer);
-                /*
-                Bundle bundle = (Bundle) inputMessage.obj;
-                short[] audioBuffer = bundle.getShortArray("AudioBuffer");
-                double pitch = bundle.getDouble("Pitch");
-                //mSyllableDetectorWorker.addPitch(pitch);
-                audioBuffers.add(audioBuffer);
-                mSeries.appendData(new DataPoint(mGraphLastXValue, pitch+1d), true, 1000);
-                mGraphLastXValue += 0.5d;
-                Log.d(LOG_TAG, "Stuff");
-                */
+
             }
         };
     }
@@ -207,10 +194,6 @@ public class MainActivity extends AppCompatActivity {
 
     //onclick button
     public void analyseFile(View view){
-        //LinkedList<Double> pitches = mAudioFileReader.readPitchFromAudioFile();
-        //TextView tv = findViewById(R.id.text_results);
-        //tv.setText(HelperFunctions.generateTextResults(pitches));
-
         Intent intent_upload = new Intent();
         intent_upload.setType("audio/*");
         intent_upload.setAction(Intent.ACTION_GET_CONTENT);
@@ -242,7 +225,6 @@ public class MainActivity extends AppCompatActivity {
                             else
                                 b = Arrays.copyOfRange(content, i * bufferSize, (i+1) * bufferSize);
                             syllableWorker.process(b);
-                            mAudioWorker.computePitch(b);
                             try {
                                 Thread.sleep(5);
                             } catch (InterruptedException e) {
@@ -256,48 +238,9 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                     }
 
-                    //the selected audio.
-                    /*
-                    Uri uri = data.getData();
-                    try {
-                        InputStream is = getContentResolver().openInputStream(uri);
-                        int numPeaks = syllablesFromFile(is);
-                        analyzedFiles.add(new AnalyzedFile(uri.getLastPathSegment(), numPeaks));
-                        Log.d("PEAKS", "Detected "+numPeaks + " syllables in File");
-                        is.close();
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    */
                     break;
                 }
             case(MULTIPLE_FILES):
-                /*
-                String jsonFilename = "";
-                if(data.getClipData() != null) {
-                    int count = data.getClipData().getItemCount();
-                    int currentItem = 0;
-                    // get directory as json filename
-                    Uri uri = data.getClipData().getItemAt(currentItem).getUri();
-                    jsonFilename = HelperFunctions.getJsonName(uri);
-                    ArrayList<Uri> files = new ArrayList<>();
-                    while(currentItem < count) {
-                        Log.d("PeakResults-Data", "Analyzing file " + String.valueOf(currentItem+1) + " / " + String.valueOf(count));
-                        uri = data.getClipData().getItemAt(currentItem).getUri();
-                        files.add(uri);
-                        currentItem = currentItem + 1;
-                    }
-                    FolderToAnalyze foo = new FolderToAnalyze(jsonFilename, files);
-                    syllableWorker.sendMessage(foo);
-                } else if(data.getData() != null) {
-                    Uri uri = data.getData();
-                    jsonFilename = HelperFunctions.getJsonName(uri);
-                    FolderToAnalyze foo = new FolderToAnalyze(jsonFilename, uri);
-                    syllableWorker.sendMessage(foo);
-                }
-                */
                 break;
         }
         super.onActivityResult(requestCode, resultCode, data);
@@ -317,24 +260,10 @@ public class MainActivity extends AppCompatActivity {
     //onclick button
     public void onClickStopAudioRecording(View view) {
         mShouldContinue = false;
-        audioBuffers.size(); //audioBuffers always contains the same data here.
-        //int numPeaks = mSyllableDetectorWorker.countPeaks();
-        //Log.d(LOG_TAG, "Detected " +numPeaks+ " peaks / syllables? in recorded audio.");
     }
 
     void recordAudio() throws IOException {
-        /*
-        File folder = getPublicMusicStorageDir("test");
-        final File outputFile = new File(folder, "myRawAudioFile.raw");
-        // if file doesnt exists, then create it
-        if (!outputFile.exists()) {
-            outputFile.createNewFile();
-            if (!outputFile.exists()) {
-                Log.e("FOO", "Tried to create file and failed somehow.");
-            }
-        }
-        final FileOutputStream outputStream = new FileOutputStream(outputFile);
-        */
+
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -376,24 +305,7 @@ public class MainActivity extends AppCompatActivity {
                     Message msg = mHandler.obtainMessage();
                     msg.obj = audioBuffer;
                     mHandler.sendMessage(msg);
-                    /*
-                    //filter microphone input
-                    Double f[] = new Double[audioBuffer.length];
-                    for(int i = 0; i < audioBuffer.length; i++)
-                    {
-                        f[i] = mBandpass.filter(workBuffer[i]);
-                    }
-                    Signal filteredSignal = new Signal(f);
 
-                    Double pitch = new Double(mAudioWorker.computePitch(filteredSignal));
-                    Log.d(LOG_TAG, "W-Pitch:" + pitch);
-                    Bundle bundle = new Bundle();
-                    bundle.putShortArray("AudioBuffer", workBuffer);
-                    bundle.putDouble("Pitch", pitch);
-                    Message msg = new Message();
-                    msg.obj = bundle;
-                    mHandler.sendMessage(msg);
-                    */
                 }
 
                 record.stop();
