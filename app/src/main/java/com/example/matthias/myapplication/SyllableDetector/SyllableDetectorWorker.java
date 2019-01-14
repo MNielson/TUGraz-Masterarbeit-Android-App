@@ -166,6 +166,7 @@ public class SyllableDetectorWorker {
         List<Double> trajectory = computeTrajectory(energyVectors, chunkSize, elements);
         PeakResults peakResults = detectPeaks(trajectory);
 
+
         if(BuildConfig.DEBUG)
         {
             // write stuff to json
@@ -200,7 +201,6 @@ public class SyllableDetectorWorker {
                     e.printStackTrace();
                 }
             }
-
         }
 
         return peakResults.getMaxima().size();
@@ -221,10 +221,12 @@ public class SyllableDetectorWorker {
     public List<ArrayList<Double>> filterBuffer(List<Short> content) {
         List<ArrayList<Double>> filtered = new ArrayList<>();
         long startTime = System.nanoTime();
+
         for(int j = 0; j < mfilters.length; j++) {
             ArrayList<Double> l = new ArrayList<>();
             for(int i = 0; i < content.size(); i++){
-                l.add(mfilters[j].filter((double) content.get(i)));
+                double d = (double) content.get(i);
+                l.add(mfilters[j].filter(d));
             }
             filtered.add(l);
         }

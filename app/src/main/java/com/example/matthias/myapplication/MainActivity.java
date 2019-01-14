@@ -156,7 +156,7 @@ public class MainActivity extends AppCompatActivity {
         filters[19-1] = b19;
         SyllableDetectorWorker syl = new SyllableDetectorWorker(filters);
 
-        SyllableDetectorConfig config = new SyllableDetectorConfig(2, 100, 19);
+        SyllableDetectorConfig config = new SyllableDetectorConfig(2, SAMPLE_RATE / 50, 19);
         syllableWorker = new SyllableDetector(syl, config);
 
 
@@ -232,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
                         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(content);
                         int bufferSize = Math.min(SAMPLE_RATE + 400, content.length);
                         int numBuffers = (int) Math.round(Math.ceil((double)content.length / bufferSize));
-                        boolean lastNeedsPadding = (Math.ceil((double)content.length / bufferSize) % 1 != 0);
+                        boolean lastNeedsPadding = (((double)content.length / bufferSize) % 1 != 0);
                         for(int i = 0; i < numBuffers; i++){
                             short[] b = new short[bufferSize];
                             if((i+1) == numBuffers && lastNeedsPadding) {
