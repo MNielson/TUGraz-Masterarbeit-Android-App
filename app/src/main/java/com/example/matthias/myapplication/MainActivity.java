@@ -21,6 +21,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 
+import com.example.matthias.myapplication.Constants;
+
+import com.example.matthias.myapplication.BufferProcessor.BufferProcessor;
 import com.example.matthias.myapplication.SyllableDetector.SyllableDetector;
 import com.example.matthias.myapplication.SyllableDetector.SyllableDetectorConfig;
 import com.example.matthias.myapplication.SyllableDetector.SyllableDetectorWorker;
@@ -47,14 +50,19 @@ public class MainActivity extends AppCompatActivity {
     //////////////////
     //REQUEST CODES //
     /////////////////
-    private static final int SINGLE_FILE      = 1;
+    private static final int SINGLE_FILE    = 1;
     private static final int MULTIPLE_FILES = 3;
 
-    public static final int SAMPLE_RATE = 44100; // 16k for speech. 44.1k for music.
     final String LOG_TAG = "Audio-Recording";
-    private Handler mHandler;
     boolean mShouldContinue;
 
+    private BufferProcessor mBufferProcessor;
+    private Handler mHandler;
+
+
+
+
+    /*
     private AudioFileReader mAudioFileReader;
     private PitchDetector mPitchDetector;
     private SyllableDetectorWorker mSyllableDetectorWorker;
@@ -75,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
 
     private SyllableDetector syllableWorker;
 
+    */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
         // Example of a call to a native method
         //TextView tv = findViewById(R.id.text_results);
         //tv.setText(stringFromJNI());
-
+        /*
         mPitchDetector = new PitchDetector();
         requestRecordAudioPermission();
         requestStoragePermission();
@@ -165,7 +174,9 @@ public class MainActivity extends AppCompatActivity {
         graph.getViewport().setMinX(0);
         graph.getViewport().setMaxX(40);
         graph.getGridLabelRenderer().setTextSize(20.0f);
+        */
 
+        mBufferProcessor = new BufferProcessor(getApplicationContext());
         mHandler = new Handler(Looper.getMainLooper()) {
             /*
          * handleMessage() defines the operations to perform when
@@ -174,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void handleMessage(Message inputMessage) {
                 short[] audioBuffer = (short[]) inputMessage.obj;
-                syllableWorker.process(audioBuffer);
+                mBufferProcessor.process(audioBuffer);
 
             }
         };
@@ -213,7 +224,11 @@ public class MainActivity extends AppCompatActivity {
                         byte[] bytes = IOUtils.toByteArray(is);
                         short[] content = new short[bytes.length / 2];
                         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(content);
-                        int bufferSize = Math.min(SAMPLE_RATE + 400, content.length);
+
+                        // TODO: split buffer into ONE_BUFFER_LEN chunks and pad the last one if needed
+
+
+                        int bufferSize = Math.min(Constants.SAMPLE_RATE + 400, content.length);
                         int numBuffers = (int) Math.round(Math.ceil((double)content.length / bufferSize));
                         boolean lastNeedsPadding = (((double)content.length / bufferSize) % 1 != 0);
                         for(int i = 0; i < numBuffers; i++){
@@ -224,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                             else
                                 b = Arrays.copyOfRange(content, i * bufferSize, (i+1) * bufferSize);
-                            syllableWorker.process(b);
+                            mBufferProcessor.process(b);
                             try {
                                 Thread.sleep(5);
                             } catch (InterruptedException e) {
@@ -270,18 +285,18 @@ public class MainActivity extends AppCompatActivity {
                 android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);
 
                 // buffer size in bytes
-                int bufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE,
+                int bufferSize = AudioRecord.getMinBufferSize(Constants.SAMPLE_RATE,
                         AudioFormat.CHANNEL_IN_MONO,
                         AudioFormat.ENCODING_PCM_16BIT);
 
                 if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
-                    bufferSize = SAMPLE_RATE * 2;
+                    bufferSize = Constants.SAMPLE_RATE * 2;
                 }
 
                 short[] audioBuffer = new short[bufferSize / 2];
 
                 AudioRecord record = new AudioRecord(MediaRecorder.AudioSource.DEFAULT,
-                        SAMPLE_RATE,
+                        Constants.SAMPLE_RATE,
                         AudioFormat.CHANNEL_IN_MONO,
                         AudioFormat.ENCODING_PCM_16BIT,
                         bufferSize);

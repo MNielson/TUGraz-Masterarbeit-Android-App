@@ -1,5 +1,6 @@
 package com.example.matthias.myapplication.BufferProcessor;
 
+import android.content.Context;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
@@ -16,15 +17,15 @@ public class BufferProcessor {
     MyBufferHandler mHandler;
 
 
-    public BufferProcessor(){
-        this( "Buffer Handling Thread");
+    public BufferProcessor(Context context){
+        this("Buffer Handling Thread", context);
     }
 
-    public BufferProcessor(String name){
+    public BufferProcessor(String name, Context context){
         myThread = new HandlerThread(name);
         myThread.start();
         mLooper = myThread.getLooper();
-        mHandler = new MyBufferHandler(mLooper);
+        mHandler = new MyBufferHandler(mLooper, context);
     }
 
     public void process(short[] content){

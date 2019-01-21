@@ -152,7 +152,7 @@ public class FFT {
 
 
 
-
+/*
     // Test the FFT to make sure it's working
     public static void main(String[] args) {
         int N = 8;
@@ -197,7 +197,7 @@ public class FFT {
         time = System.currentTimeMillis() - time;
         System.out.println("Averaged " + (time/iter) + "ms per iteration");
     }
-
+*/
     protected static void beforeAfter(FFT fft, double[] re, double[] im) {
         System.out.println("Before: ");
         printReIm(re, im);

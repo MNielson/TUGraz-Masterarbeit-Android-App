@@ -1,11 +1,20 @@
 package com.example.matthias.myapplication.BufferProcessor;
 
+import android.app.Activity;
+import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.widget.TextView;
 
+import com.example.matthias.myapplication.Constants;
 import com.example.matthias.myapplication.FFT;
 import com.example.matthias.myapplication.PitchDetector;
+import com.example.matthias.myapplication.R;
+
+import org.w3c.dom.Text;
+
+
 
 import java.util.List;
 
@@ -13,8 +22,9 @@ public class MyBufferHandler extends Handler {
 
     private final PitchDetector mPitchDetector;
     private final FFT fft;
-    private final int ONE_BUFFER_LEN = 2048;
-    private final int MIN_EXTREMA_X_DIFF = ONE_BUFFER_LEN / 2;
+
+    private final int MIN_EXTREMA_X_DIFF = Constants.ONE_BUFFER_LEN / 2;
+    private final Context mcontext;
 
     // Number of processed buffers
     int buffercounter = 0;
@@ -24,10 +34,11 @@ public class MyBufferHandler extends Handler {
     int p0_index = 0, p1_index = 0, p2_index = 0;
     int wordpart = 0;
 
-    public MyBufferHandler(Looper looper) {
+    public MyBufferHandler(Looper looper, Context context) {
         super(looper);
         mPitchDetector = new PitchDetector();
-        fft = new FFT(ONE_BUFFER_LEN);
+        fft = new FFT(Constants.ONE_BUFFER_LEN);
+        mcontext = context;
 
 
     }
@@ -37,9 +48,11 @@ public class MyBufferHandler extends Handler {
 
         double pitch = computePitch(buffer);
 
+        assert buffer.size() <= Constants.ONE_BUFFER_LEN;
+
         // perform FFT
-        double[] re = new double[ONE_BUFFER_LEN];
-        double[] im = new double[ONE_BUFFER_LEN];
+        double[] re = new double[Constants.ONE_BUFFER_LEN];
+        double[] im = new double[Constants.ONE_BUFFER_LEN];
         for(int i = 0; i < buffer.size(); i++){
             re[i] = buffer.get(i).doubleValue();
             im[i] = 0;
@@ -51,7 +64,7 @@ public class MyBufferHandler extends Handler {
         // Use 4 bands max, otherwise NON-real-time (quadratic computational complexity)
         double y = 0;
         int n_bands = 20;
-        int L = ONE_BUFFER_LEN / 2 / n_bands;
+        int L = Constants.ONE_BUFFER_LEN / 2 / n_bands;
         for (int i=0; i<n_bands-1; i++) {
             for (int j=i+1; j<n_bands; j++) {
                 double sum_i = 0;
@@ -66,7 +79,7 @@ public class MyBufferHandler extends Handler {
 
         // Step 2: Syllable recognition algorithm (local extrema finding). Online algorithm.
         // Extremas are either /\ or \/ --> Estimated by: p0_elem --> p1_elem --> y.
-        float MIN_EXTREMA_Y_DIFF = 0;
+        double MIN_EXTREMA_Y_DIFF = 0;
 
         p2_index += buffer.size();
         if (p0_elem <= p1_elem && p1_elem <= y) { p1_elem = y; p1_index = p2_index; }
@@ -107,10 +120,31 @@ public class MyBufferHandler extends Handler {
 
     private void process_maximum(int index, double value) {
         wordpart++;
+
+        Activity activity = (Activity) mcontext;
+        TextView tv =  (TextView) activity.findViewById(R.id.textView);
+        activity.runOnUiThread(new Runnable(){
+            public void run() {
+                tv.append("Found a maximum\n");
+                // UI code goes here
+            }
+        });
+
+
     }
 
     private void process_minimum(int index, double value) {
         double pause = ((double)index) / 44100;
+
+
+        Activity activity = (Activity) mcontext;
+        TextView tv =  (TextView) activity.findViewById(R.id.textView);
+        activity.runOnUiThread(new Runnable(){
+            public void run() {
+                tv.append("Found a minimum\n");
+                // UI code goes here
+            }
+        });
     }
 
 
