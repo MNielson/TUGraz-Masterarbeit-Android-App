@@ -5,22 +5,18 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 
 import com.example.matthias.myapplication.BuildConfig;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 
-import autovalue.shaded.org.apache.commons.lang.ArrayUtils;
+import static com.example.matthias.myapplication.Constants.SAMPLE_RATE;
 
-import static com.example.matthias.myapplication.MainActivity.SAMPLE_RATE;
 
 public class MyHandler extends Handler {
     private static final String LOG_TAG = "MyHandler";

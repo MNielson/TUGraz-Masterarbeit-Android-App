@@ -1,32 +1,18 @@
 package com.example.matthias.myapplication.SyllableDetector;
 
-import android.annotation.TargetApi;
-import android.os.Build;
 import android.os.Environment;
-import android.support.annotation.RequiresApi;
 import android.util.Log;
 
 import com.example.matthias.myapplication.BuildConfig;
-
-import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
-import autovalue.shaded.org.apache.commons.lang.ArrayUtils;
 import uk.me.berndporr.iirj.Butterworth;
-
-import static com.example.matthias.myapplication.MainActivity.SAMPLE_RATE;
-import static java.lang.System.gc;
 
 /**
  * Created by Matthias on 13.07.2018.

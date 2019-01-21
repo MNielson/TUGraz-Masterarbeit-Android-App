@@ -2,7 +2,7 @@ package com.example.matthias.myapplication.SyllableDetector;
 
 import android.util.Log;
 
-import static com.example.matthias.myapplication.MainActivity.SAMPLE_RATE;
+import static com.example.matthias.myapplication.Constants.SAMPLE_RATE;
 
 
 public class SyllableDetectorConfig {

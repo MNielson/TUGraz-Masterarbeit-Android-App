@@ -12,10 +12,6 @@ import com.example.matthias.myapplication.FFT;
 import com.example.matthias.myapplication.PitchDetector;
 import com.example.matthias.myapplication.R;
 
-import org.w3c.dom.Text;
-
-
-
 import java.util.List;
 
 public class MyBufferHandler extends Handler {
@@ -125,7 +121,7 @@ public class MyBufferHandler extends Handler {
         TextView tv =  (TextView) activity.findViewById(R.id.textView);
         activity.runOnUiThread(new Runnable(){
             public void run() {
-                tv.append("Found a maximum\n");
+                //tv.append("Found a maximum\n");
                 // UI code goes here
             }
         });
@@ -141,7 +137,7 @@ public class MyBufferHandler extends Handler {
         TextView tv =  (TextView) activity.findViewById(R.id.textView);
         activity.runOnUiThread(new Runnable(){
             public void run() {
-                tv.append("Found a minimum\n");
+                //tv.append("Found a minimum\n");
                 // UI code goes here
             }
         });
