@@ -1,7 +1,6 @@
 package com.example.matthias.myapplication.BufferProcessor;
 
 import android.app.Activity;
-import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -20,7 +19,7 @@ public class MyBufferHandler extends Handler {
     private final FFT fft;
 
     private final int MIN_EXTREMA_X_DIFF = Constants.ONE_BUFFER_LEN / 2;
-    private final Context mcontext;
+    private final Activity mactivity;
 
     // Number of processed buffers
     int buffercounter = 0;
@@ -30,11 +29,11 @@ public class MyBufferHandler extends Handler {
     int p0_index = 0, p1_index = 0, p2_index = 0;
     int wordpart = 0;
 
-    public MyBufferHandler(Looper looper, Context context) {
+    public MyBufferHandler(Looper looper, Activity activity) {
         super(looper);
         mPitchDetector = new PitchDetector();
         fft = new FFT(Constants.ONE_BUFFER_LEN);
-        mcontext = context;
+        mactivity = activity;
 
 
     }
@@ -116,13 +115,12 @@ public class MyBufferHandler extends Handler {
 
     private void process_maximum(int index, double value) {
         wordpart++;
-
-        Activity activity = (Activity) mcontext;
-        TextView tv =  (TextView) activity.findViewById(R.id.textView);
-        activity.runOnUiThread(new Runnable(){
+        TextView tv =  (TextView) mactivity.findViewById(R.id.textView);
+        mactivity.runOnUiThread(new Runnable(){
             public void run() {
-                //tv.append("Found a maximum\n");
+
                 // UI code goes here
+                tv.append("Found a maximum\n");
             }
         });
 
@@ -131,14 +129,12 @@ public class MyBufferHandler extends Handler {
 
     private void process_minimum(int index, double value) {
         double pause = ((double)index) / 44100;
-
-
-        Activity activity = (Activity) mcontext;
-        TextView tv =  (TextView) activity.findViewById(R.id.textView);
-        activity.runOnUiThread(new Runnable(){
+        TextView tv =  (TextView) mactivity.findViewById(R.id.textView);
+        mactivity.runOnUiThread(new Runnable(){
             public void run() {
-                //tv.append("Found a minimum\n");
+
                 // UI code goes here
+                tv.append("Found a minimum\n");
             }
         });
     }

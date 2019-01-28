@@ -13,7 +13,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
-import android.os.SystemClock;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -21,15 +20,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 
-import com.example.matthias.myapplication.Constants;
-
 import com.example.matthias.myapplication.BufferProcessor.BufferProcessor;
-import com.example.matthias.myapplication.SyllableDetector.SyllableDetector;
-import com.example.matthias.myapplication.SyllableDetector.SyllableDetectorConfig;
-import com.example.matthias.myapplication.SyllableDetector.SyllableDetectorWorker;
-import com.jjoe64.graphview.GraphView;
-import com.jjoe64.graphview.series.DataPoint;
-import com.jjoe64.graphview.series.LineGraphSeries;
 
 import org.apache.commons.io.IOUtils;
 
@@ -40,10 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.Arrays;
-
-import uk.me.berndporr.iirj.Butterworth;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -58,125 +46,14 @@ public class MainActivity extends AppCompatActivity {
 
     private BufferProcessor mBufferProcessor;
     private Handler mHandler;
-
-
-
-
-    /*
-    private AudioFileReader mAudioFileReader;
-    private PitchDetector mPitchDetector;
-    private SyllableDetectorWorker mSyllableDetectorWorker;
-
-    private ArrayList<AnalyzedFile> analyzedFiles = new ArrayList<>();
-
-    private ArrayList<short[]> audioBuffers = new ArrayList<>();
-
-    private double mGraphLastXValue = 0;
-    private LineGraphSeries<DataPoint> mSeries;
-
-    // Bandpass Frequencies
-    final int FL = 50;
-    final int FH = 50;
-    private Butterworth mBandpass;
-    private Filterbank mFilterbank;
-    //private Butterworth[] filters = new Butterworth[19];
-
-    private SyllableDetector syllableWorker;
-
-    */
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Example of a call to a native method
-        //TextView tv = findViewById(R.id.text_results);
-        //tv.setText(stringFromJNI());
-        /*
-        mPitchDetector = new PitchDetector();
-        requestRecordAudioPermission();
-        requestStoragePermission();
 
-        mBandpass = new Butterworth();
-        mBandpass.bandPass(2, SAMPLE_RATE, (FH - FL) / 2, FH - FL);
-
-        Butterworth b1 = new Butterworth();
-        Butterworth b2 = new Butterworth();
-        Butterworth b3 = new Butterworth();
-        Butterworth b4 = new Butterworth();
-        Butterworth b5 = new Butterworth();
-        Butterworth b6 = new Butterworth();
-        Butterworth b7 = new Butterworth();
-        Butterworth b8 = new Butterworth();
-        Butterworth b9 = new Butterworth();
-        Butterworth b10 = new Butterworth();
-        Butterworth b11 = new Butterworth();
-        Butterworth b12 = new Butterworth();
-        Butterworth b13 = new Butterworth();
-        Butterworth b14 = new Butterworth();
-        Butterworth b15 = new Butterworth();
-        Butterworth b16 = new Butterworth();
-        Butterworth b17 = new Butterworth();
-        Butterworth b18 = new Butterworth();
-        Butterworth b19 = new Butterworth();
-
-        b1.bandPass(2, SAMPLE_RATE, 240, 120);
-        b2.bandPass(2, SAMPLE_RATE, 360, 120);
-        b3.bandPass(2, SAMPLE_RATE, 480, 120);
-        b4.bandPass(2, SAMPLE_RATE, 600, 120);
-        b5.bandPass(2, SAMPLE_RATE, 720, 120);
-        b6.bandPass(2, SAMPLE_RATE, 840, 120);
-        b7.bandPass(2, SAMPLE_RATE, 1000, 150);
-        b8.bandPass(2, SAMPLE_RATE, 1150, 150);
-        b9.bandPass(2, SAMPLE_RATE, 1300, 150);
-        b10.bandPass(2, SAMPLE_RATE, 1450, 150);
-        b11.bandPass(2, SAMPLE_RATE, 1600, 150);
-        b12.bandPass(2, SAMPLE_RATE, 1800, 200);
-        b13.bandPass(2, SAMPLE_RATE, 2000, 200);
-        b14.bandPass(2, SAMPLE_RATE, 2200, 200);
-        b15.bandPass(2, SAMPLE_RATE, 2400, 200);
-        b16.bandPass(2, SAMPLE_RATE, 2700, 300);
-        b17.bandPass(2, SAMPLE_RATE, 3000, 300);
-        b18.bandPass(2, SAMPLE_RATE, 3300, 300);
-        b19.bandPass(2, SAMPLE_RATE, 3750, 500);
-
-        Butterworth[] filters = new Butterworth[19];
-        filters[1 -1] = b1;
-        filters[2 -1] = b2;
-        filters[3 -1] = b3;
-        filters[4 -1] = b4;
-        filters[5 -1] = b5;
-        filters[6 -1] = b6;
-        filters[7 -1] = b7;
-        filters[8 -1] = b8;
-        filters[9 -1] = b9;
-        filters[10-1] = b10;
-        filters[11-1] = b11;
-        filters[12-1] = b12;
-        filters[13-1] = b13;
-        filters[14-1] = b14;
-        filters[15-1] = b15;
-        filters[16-1] = b16;
-        filters[17-1] = b17;
-        filters[18-1] = b18;
-        filters[19-1] = b19;
-        SyllableDetectorWorker syl = new SyllableDetectorWorker(filters);
-
-        SyllableDetectorConfig config = new SyllableDetectorConfig(2, SAMPLE_RATE / 50, 19);
-        syllableWorker = new SyllableDetector(syl, config);
-
-
-        GraphView graph = findViewById(R.id.graph);
-        mSeries = new LineGraphSeries<>();
-        graph.addSeries(mSeries);
-
-        graph.getViewport().setXAxisBoundsManual(true);
-        graph.getViewport().setMinX(0);
-        graph.getViewport().setMaxX(40);
-        graph.getGridLabelRenderer().setTextSize(20.0f);
-        */
-
-        mBufferProcessor = new BufferProcessor(getApplicationContext());
+        mBufferProcessor = new BufferProcessor(this);
         mHandler = new Handler(Looper.getMainLooper()) {
             /*
          * handleMessage() defines the operations to perform when
@@ -221,24 +98,24 @@ public class MainActivity extends AppCompatActivity {
                     InputStream is;
                     try {
                         is = getContentResolver().openInputStream(uri);
-                        byte[] bytes = IOUtils.toByteArray(is);
+                        byte[] tbytes = IOUtils.toByteArray(is);
+                        //skip wav header
+                        byte[] bytes = new byte[tbytes.length - 44];
+                        bytes = Arrays.copyOfRange(tbytes, 44, tbytes.length);
                         short[] content = new short[bytes.length / 2];
                         ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(content);
 
-                        // TODO: split buffer into ONE_BUFFER_LEN chunks and pad the last one if needed
 
-
-                        int bufferSize = Math.min(Constants.SAMPLE_RATE + 400, content.length);
-                        int numBuffers = (int) Math.round(Math.ceil((double)content.length / bufferSize));
-                        boolean lastNeedsPadding = (((double)content.length / bufferSize) % 1 != 0);
+                        int numBuffers = (int) Math.round(Math.ceil((double)content.length / Constants.ONE_BUFFER_LEN));
+                        boolean lastNeedsPadding = (((double)content.length / Constants.ONE_BUFFER_LEN) % 1 != 0);
                         for(int i = 0; i < numBuffers; i++){
-                            short[] b = new short[bufferSize];
+                            short[] b = new short[Constants.ONE_BUFFER_LEN];
                             if((i+1) == numBuffers && lastNeedsPadding) {
                                 Arrays.fill(b, (short) 0);
-                                b = Arrays.copyOfRange(content, i * bufferSize, content.length);
+                                b = Arrays.copyOfRange(content, i * Constants.ONE_BUFFER_LEN, content.length);
                             }
                             else
-                                b = Arrays.copyOfRange(content, i * bufferSize, (i+1) * bufferSize);
+                                b = Arrays.copyOfRange(content, i * Constants.ONE_BUFFER_LEN, (i+1) * Constants.ONE_BUFFER_LEN);
                             mBufferProcessor.process(b);
                             try {
                                 Thread.sleep(5);
@@ -290,8 +167,10 @@ public class MainActivity extends AppCompatActivity {
                         AudioFormat.ENCODING_PCM_16BIT);
 
                 if (bufferSize == AudioRecord.ERROR || bufferSize == AudioRecord.ERROR_BAD_VALUE) {
-                    bufferSize = Constants.SAMPLE_RATE * 2;
+                    bufferSize = Constants.ONE_BUFFER_LEN * 2;
                 }
+                if (bufferSize < Constants.ONE_BUFFER_LEN * 2)
+                    bufferSize = Constants.ONE_BUFFER_LEN * 2;
 
                 short[] audioBuffer = new short[bufferSize / 2];
 
